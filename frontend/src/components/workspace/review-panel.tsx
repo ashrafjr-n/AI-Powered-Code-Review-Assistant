@@ -9,6 +9,8 @@ import { ReviewForm } from "./review-form";
 interface ReviewPanelProps {
   projectId: string;
   currentFile?: string;
+  /** Readable file paths (diff review pickers). */
+  paths: string[];
   reviews: Review[];
   plan: ReviewPlan | null;
 }
@@ -16,12 +18,18 @@ interface ReviewPanelProps {
 export function ReviewPanel({
   projectId,
   currentFile,
+  paths,
   reviews,
   plan,
 }: ReviewPanelProps) {
   return (
     <div className="space-y-8 p-4">
-      <ReviewForm projectId={projectId} currentFile={currentFile} plan={plan} />
+      <ReviewForm
+        projectId={projectId}
+        currentFile={currentFile}
+        paths={paths}
+        plan={plan}
+      />
       <section aria-labelledby="recent-reviews" className="space-y-3">
         <h2
           id="recent-reviews"

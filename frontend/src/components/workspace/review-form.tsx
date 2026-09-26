@@ -6,6 +6,8 @@ import { runReviewAction } from "@/app/(app)/projects/[id]/actions";
 import { Button } from "@/components/ui/button";
 import { DemoLimitPanel } from "@/components/app/demo-limit-panel";
 import { FormError } from "@/components/ui/form-error";
+import { inputClass } from "@/components/ui/input";
+import { cn } from "@/lib/cn";
 import { MODE_LABEL } from "@/lib/labels";
 import type { ReviewMode, ReviewPlan } from "@/lib/types";
 import { useElapsed, withElapsed } from "@/lib/use-elapsed";
@@ -21,6 +23,8 @@ const lensHints: Record<ReviewMode, string> = {
 interface ReviewFormProps {
   projectId: string;
   currentFile?: string;
+  /** Readable files, for the two pickers of a diff review. */
+  paths: string[];
   /** How many files a whole-project review sends (null while not loaded). */
   plan: ReviewPlan | null;
 }
@@ -35,7 +39,12 @@ function planText(plan: ReviewPlan): string {
 const radioCard =
   "flex cursor-pointer items-start gap-3 rounded-sm border border-line px-3 py-2.5 transition-colors hover:border-line-strong has-checked:border-silver-300 has-checked:bg-ink-850";
 
-export function ReviewForm({ projectId, currentFile, plan }: ReviewFormProps) {
+export function ReviewForm({
+  projectId,
+  currentFile,
+  paths,
+  plan,
+}: ReviewFormProps) {
   const [state, formAction, pending] = useActionState(
     runReviewAction.bind(null, projectId),
     {},
@@ -79,7 +88,7 @@ export function ReviewForm({ projectId, currentFile, plan }: ReviewFormProps) {
         ))}
       </fieldset>
 
-      <fieldset className="space-y-2">
+      <fieldset className="group space-y-2">
         <legend className="mb-3 font-mono text-[11px] tracking-label text-silver-500 uppercase">
           Scope
         </legend>
@@ -127,6 +136,43 @@ export function ReviewForm({ projectId, currentFile, plan }: ReviewFormProps) {
             </span>
           </span>
         </label>
+        <label className={radioCard}>
+          <input
+            id="scope-diff"
+            type="radio"
+            name="scope"
+            value="DIFF"
+            className="mt-1 accent-silver-200"
+          />
+          <span>
+            <span className="block text-sm text-paper">Compare two files</span>
+            <span className="block text-xs text-silver-500">
+              Review only what changed between them
+            </span>
+          </span>
+        </label>
+        {/* Shown only while "Compare two files" is picked (CSS, no state). */}
+        <div className="hidden space-y-2 pl-7 group-has-[#scope-diff:checked]:block">
+          {(["before", "after"] as const).map((side) => (
+            <label key={side} className="block space-y-1">
+              <span className="block font-mono text-[11px] text-silver-500 capitalize">
+                {side}
+              </span>
+              <select
+                name={side}
+                defaultValue={side === "after" ? (currentFile ?? "") : ""}
+                className={cn(inputClass, "h-9 font-mono text-xs")}
+              >
+                <option value="">Pick a file</option>
+                {paths.map((path) => (
+                  <option key={path} value={path}>
+                    {path}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+        </div>
       </fieldset>
 
       <div className="space-y-2">

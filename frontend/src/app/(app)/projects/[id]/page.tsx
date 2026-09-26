@@ -151,6 +151,9 @@ export default async function WorkspacePage({
               <ReviewPanel
                 projectId={id}
                 currentFile={file?.path}
+                paths={files
+                  .filter((entry) => !entry.sensitive)
+                  .map((entry) => entry.path)}
                 reviews={reviews}
                 plan={plan}
               />
