@@ -59,7 +59,7 @@ See [.env.example](.env.example) for every variable with a comment.
 | `projects` | `GET/POST /projects`, `GET/DELETE /projects/:id` | Every query is scoped to the user; other users' projects answer 404 |
 | `files` | `POST/GET /projects/:id/files`, `GET …/files/content?path=` | Unzip in memory with limits, skip junk, keep secret files by path only, redact inline secrets |
 | `providers` | `/providers` (list, add, edit, delete, set main, test), `/providers/options`, `/providers/demo` | Encrypted API keys, SSRF guard, the demo model with daily limits. `useProvider()` is the one gate for every AI call |
-| `reviews` | `POST /projects/:id/reviews`, `GET …/reviews/plan`, `GET /reviews`, `GET /reviews/:id` | Prompt, context budget, JSON output checked with Zod (1 retry), paths/lines matched to real files |
+| `reviews` | `POST /projects/:id/reviews`, `GET …/reviews/plan`, `GET /reviews`, `GET /reviews/:id` | Prompt, context budget, JSON output checked with Zod (1 retry), paths/lines matched to real files. Scope `DIFF` = review only the change between two files (`review-diff.ts`, jsdiff) |
 | `chat` | `GET /projects/:id/chats`, `POST …/chats/messages` | Keyword retrieval (top 3 files = sources), last 6 messages as history |
 | `insights` | `GET/POST /projects/:id/insights` | Architecture overview, README, setup guide, API docs. One saved document per kind |
 | `health` | `GET /health` | For the host's health check |

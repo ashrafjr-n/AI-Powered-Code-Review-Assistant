@@ -47,6 +47,7 @@ npm run dev                  # http://localhost:3000
 ## How it works
 - **Data:** pages are async Server Components that read through `lib/api/`. Changes are Server Actions that check input, call the backend and `revalidatePath`.
 - **URL is state:** the selected file, line, tab, chat and open document live in the query string, so links, reload and back/forward work.
+- **Diff Review:** "Compare two files" in the Review tab (Before/After pickers shown with CSS `:has`, no state). The report shows the saved diff (`components/review/diff-view.tsx`, `lib/diff-lines.ts`) in grey shades only (red is budgeted).
 - **Uploads:** a ZIP, loose files or a whole folder (drag and drop or "Choose a folder"; dropped folders are walked with `webkitGetAsEntry()` in `lib/dropped-files.ts`, and `node_modules`-like folders are never opened). The same rules (`lib/upload.ts`) slim everything in the browser (drops `node_modules`, builds, binaries; empties secret files) and sent to `/api/...`, which `next.config.ts` rewrites to the backend. Server Actions are limited to 1 MB bodies. The same drop zone opens from **Replace** in the workspace to upload a newer version (all files are replaced; past reviews keep their file list).
 
 ## Deploy (Vercel)

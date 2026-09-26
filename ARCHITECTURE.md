@@ -108,7 +108,7 @@ flowchart TD
 | `projects` | `GET/POST /projects`, `GET/DELETE /projects/:id` | `findOwned()` is **the** ownership check that every `/projects/:id/...` route uses. Another user's project answers 404 |
 | `files` | `POST/GET /projects/:id/files`, `GET /projects/:id/files/content?path=` | Unzips in memory (fflate), filters, redacts secrets. A new upload replaces all files in one transaction |
 | `providers` | `/providers` (CRUD, set main, test), `/providers/options`, `/providers/demo` | AES-256-GCM API keys, SSRF guard, demo model. `useProvider()` wraps every AI call |
-| `reviews` | `POST /projects/:id/reviews`, `GET /projects/:id/reviews/plan`, `GET /reviews`, `GET /reviews/:id` | Prompt building, context budget, output validation, history search |
+| `reviews` | `POST /projects/:id/reviews`, `GET /projects/:id/reviews/plan`, `GET /reviews`, `GET /reviews/:id` | Prompt building, context budget, output validation, history search, diff reviews (jsdiff) |
 | `chat` | `GET /projects/:id/chats`, `POST /projects/:id/chats/messages` | Keyword retrieval, top 3 files as sources, last 6 messages as history |
 | `insights` | `GET/POST /projects/:id/insights` | Architecture overview, README, setup guide, API docs. One saved document per kind |
 | `health` | `GET /health` | Health check for the host |
@@ -180,8 +180,9 @@ erDiagram
     uuid id PK
     uuid projectId FK
     enum mode "SECURITY PERFORMANCE QUALITY"
-    enum scope "FILE FILES PROJECT"
+    enum scope "FILE FILES PROJECT DIFF"
     string_array filePaths
+    text diff "DIFF only, nullable"
     text summary
     json issues
     json recommendations
@@ -267,9 +268,10 @@ sequenceDiagram
 ```
 
 Key points:
-- **The model's output is untrusted.** `parseReviewOutput()` pulls the JSON out of the text, validates it with Zod, and keeps only issues whose file path is one of the files sent. Unknown lines are dropped, so "jump to line" links never break.
+- **The model's output is untrusted.** `parseReviewOutput()` pulls the JSON out of the text, validates it with Zod, and matches every file path and line to the files that were sent. An unknown path or line is removed from the issue (the issue itself stays), so "jump to line" links never break.
 - **Works with any OpenAI-compatible server.** No `response_format` and no `temperature`, because some servers and models reject them. The prompt asks for JSON, and one retry sends back the exact validation error.
 - **Honest about what was read.** If files don't fit the budget, the summary says how many were left out. Before a whole-project review, `GET /reviews/plan` uses the same selection code to show "N of M files fit".
+- **Diff Review (bonus).** Scope `DIFF` compares two files. `diffFiles()` (jsdiff) keeps only changed lines plus 3 lines of context, numbered with the *after* file's lines (removed lines have no number). The model is told to review only what the change adds or causes, and its lines are checked against the after file. The unified diff is saved on the review (`Review.diff`), so the report can show it even after the code is replaced.
 - **Errors are specific.** A model or network failure returns 502, a used-up demo 429 (`DEMO_LIMIT`), a busy demo 503 (`DEMO_BUSY`). The UI shows a help panel for the demo cases instead of a red error.
 
 Chat and insights follow the same path (`findOwned` → readable files → `useProvider` → save on success):
