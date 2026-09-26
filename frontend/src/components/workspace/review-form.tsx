@@ -158,20 +158,23 @@ export function ReviewForm({
               <span className="block font-mono text-[11px] text-silver-500 capitalize">
                 {side}
               </span>
-              <select
+              {/* Type a name ("auth.ts") or pick from the list; the backend resolves it. */}
+              <input
                 name={side}
+                list="diff-file-options"
                 defaultValue={side === "after" ? (currentFile ?? "") : ""}
+                placeholder="Type or pick a file"
+                autoComplete="off"
+                spellCheck={false}
                 className={cn(inputClass, "h-9 font-mono text-xs")}
-              >
-                <option value="">Pick a file</option>
-                {paths.map((path) => (
-                  <option key={path} value={path}>
-                    {path}
-                  </option>
-                ))}
-              </select>
+              />
             </label>
           ))}
+          <datalist id="diff-file-options">
+            {paths.map((path) => (
+              <option key={path} value={path} />
+            ))}
+          </datalist>
         </div>
       </fieldset>
 

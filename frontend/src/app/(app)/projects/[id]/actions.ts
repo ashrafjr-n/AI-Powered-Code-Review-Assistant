@@ -63,8 +63,9 @@ export async function runReviewAction(
     if (filePaths.length === 0)
       return { error: "Tick at least one file in the tree." };
   } else if (scope === "DIFF") {
-    const before = String(formData.get("before") ?? "");
-    const after = String(formData.get("after") ?? "");
+    // Typed names are fine ("auth.ts"): the backend resolves them to full paths.
+    const before = String(formData.get("before") ?? "").trim();
+    const after = String(formData.get("after") ?? "").trim();
     if (!before || !after) return { error: "Pick the before and after files." };
     if (before === after) return { error: "Pick two different files." };
     filePaths = [before, after];
