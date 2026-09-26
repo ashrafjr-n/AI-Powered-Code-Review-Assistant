@@ -4,8 +4,8 @@ const mode = z.enum(['SECURITY', 'PERFORMANCE', 'QUALITY']);
 
 export const runReviewSchema = z.object({
   mode,
-  scope: z.enum(['FILE', 'FILES', 'PROJECT']),
-  // Ignored for PROJECT. Checked against the project's files on the server.
+  scope: z.enum(['FILE', 'FILES', 'PROJECT', 'DIFF']),
+  // Ignored for PROJECT; [before, after] for DIFF. Checked against the project's files.
   filePaths: z.array(z.string().min(1).max(1000)).max(2000).default([]),
 });
 

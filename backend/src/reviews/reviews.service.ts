@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { Prisma, ReviewMode } from '../generated/prisma/client.js';
+import type { Prisma, ReviewScope } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ProjectsService } from '../projects/projects.service.js';
 import { providerClient } from '../providers/provider-client.js';
@@ -18,8 +18,11 @@ import {
   type ReviewIssue,
   type ReviewOutput,
 } from './review-output.js';
+import { diffFiles } from './review-diff.js';
 import {
+  buildDiffReviewMessages,
   buildReviewMessages,
+  MAX_REVIEW_CHARS,
   pickFiles,
   rankForReview,
   type SourceFile,
@@ -36,6 +39,7 @@ const reviewSelect = {
   mode: true,
   scope: true,
   filePaths: true,
+  diff: true,
   summary: true,
   issues: true,
   recommendations: true,
@@ -47,6 +51,20 @@ const reviewSelect = {
 } as const;
 
 type ReviewRow = Prisma.ReviewGetPayload<{ select: typeof reviewSelect }>;
+
+type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
+
+/** Everything one review needs before the model is called. */
+interface ReviewJob {
+  messages: ChatMessage[];
+  /** Files the model's paths and lines are checked against. */
+  checkedFiles: SourceFile[];
+  filePaths: string[];
+  scope: ReviewScope;
+  /** Files left out to fit the budget. */
+  skipped: number;
+  diff: string | null;
+}
 
 export type ReviewView = Omit<
   ReviewRow,
@@ -141,34 +159,27 @@ export class ReviewsService {
     projectId: string,
     dto: RunReviewDto,
   ): Promise<ReviewView> {
-    const { included, skipped, hiddenPaths } = await this.selectFiles(
-      userId,
-      projectId,
-      dto.scope,
-      dto.filePaths,
-    );
+    const job =
+      dto.scope === 'DIFF'
+        ? await this.diffJob(userId, projectId, dto)
+        : await this.filesJob(userId, projectId, dto);
     const { provider, output } = await this.providers.useProvider(
       userId,
       async (provider) => ({
         provider,
-        output: await this.ask(provider, dto.mode, included, hiddenPaths),
+        output: await this.ask(provider, job.messages, job.checkedFiles),
       }),
     );
-    const summary = skipped
-      ? `${output.summary} (${skipped} file${skipped === 1 ? ' was' : 's were'} left out to fit the model's context.)`
+    const summary = job.skipped
+      ? `${output.summary} (${job.skipped} file${job.skipped === 1 ? ' was' : 's were'} left out to fit the model's context.)`
       : output.summary;
-
     const row = await this.prisma.review.create({
       data: {
         projectId,
         mode: dto.mode,
-        scope:
-          dto.scope === 'PROJECT'
-            ? 'PROJECT'
-            : included.length === 1
-              ? 'FILE'
-              : 'FILES',
-        filePaths: included.map((file) => file.path),
+        scope: job.scope,
+        filePaths: job.filePaths,
+        diff: job.diff,
         summary,
         issues: output.issues as unknown as Prisma.InputJsonValue,
         recommendations: output.recommendations,
@@ -179,6 +190,80 @@ export class ReviewsService {
       select: reviewSelect,
     });
     return toView(row);
+  }
+
+  /** One file, picked files or the whole project. */
+  private async filesJob(
+    userId: string,
+    projectId: string,
+    dto: RunReviewDto,
+  ): Promise<ReviewJob> {
+    const { included, skipped, hiddenPaths } = await this.selectFiles(
+      userId,
+      projectId,
+      dto.scope,
+      dto.filePaths,
+    );
+    return {
+      messages: buildReviewMessages(dto.mode, included, hiddenPaths),
+      checkedFiles: included,
+      filePaths: included.map((file) => file.path),
+      scope:
+        dto.scope === 'PROJECT'
+          ? 'PROJECT'
+          : included.length === 1
+            ? 'FILE'
+            : 'FILES',
+      skipped,
+      diff: null,
+    };
+  }
+
+  /** Diff Review: filePaths = [before, after]; only the change is sent. */
+  private async diffJob(
+    userId: string,
+    projectId: string,
+    dto: RunReviewDto,
+  ): Promise<ReviewJob> {
+    await this.projects.findOwned(userId, projectId);
+    const [beforePath, afterPath] = dto.filePaths;
+    if (dto.filePaths.length !== 2 || beforePath === afterPath)
+      throw new BadRequestException('Pick two different files to compare.');
+    // Never trust paths from the browser: both must be stored in this project.
+    const files = await this.prisma.file.findMany({
+      where: { projectId, path: { in: dto.filePaths } },
+      select: { path: true, content: true, sensitive: true },
+    });
+    const before = files.find((file) => file.path === beforePath);
+    const after = files.find((file) => file.path === afterPath);
+    if (!before || !after)
+      throw new BadRequestException('Both files must be in the project.');
+    if (before.sensitive || after.sensitive)
+      throw new BadRequestException(
+        'Files hidden for privacy (they usually hold secrets) cannot be compared.',
+      );
+    const diff = diffFiles(before, after);
+    if (!diff)
+      throw new BadRequestException(
+        'The two files are identical, so there is nothing to review.',
+      );
+    if (diff.numbered.length > MAX_REVIEW_CHARS)
+      throw new BadRequestException(
+        'The change is too large for one review. Compare smaller files.',
+      );
+    return {
+      messages: buildDiffReviewMessages(
+        dto.mode,
+        before.path,
+        after.path,
+        diff.numbered,
+      ),
+      checkedFiles: [after],
+      filePaths: [before.path, after.path],
+      scope: 'DIFF',
+      skipped: 0,
+      diff: diff.patch,
+    };
   }
 
   // Search runs over summary, project name, file paths and issue titles.
@@ -220,19 +305,16 @@ export class ReviewsService {
   /** Calls the model; retries once with the validation error if the JSON is bad. */
   private async ask(
     provider: ActiveProvider,
-    mode: ReviewMode,
+    prompt: ChatMessage[],
     files: SourceFile[],
-    hiddenPaths: string[],
   ): Promise<ReviewOutput> {
     const client = providerClient(
       provider.baseUrl,
       provider.apiKey,
       REVIEW_TIMEOUT_MS,
     );
-    const messages: {
-      role: 'system' | 'user' | 'assistant';
-      content: string;
-    }[] = buildReviewMessages(mode, files, hiddenPaths);
+    // A copy: a retry adds the bad reply and the correction to it.
+    const messages = [...prompt];
     const deadline = Date.now() + REVIEW_TIMEOUT_MS;
 
     for (let attempt = 1; ; attempt++) {
