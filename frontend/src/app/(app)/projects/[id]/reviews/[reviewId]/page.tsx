@@ -30,7 +30,11 @@ export default async function ReviewPage({ params, searchParams }: Props) {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <ReviewReport review={review} only={only} />
+      <ReviewReport
+        review={review}
+        only={only}
+        outdated={review.codeVersion !== project.codeVersion}
+      />
     </div>
   );
 }

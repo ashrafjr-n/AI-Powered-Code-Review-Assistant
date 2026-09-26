@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { FileCode2 } from "lucide-react";
+import { FileCode2, History } from "lucide-react";
 import { SeverityBadge } from "@/components/ui/severity-badge";
 import { cn } from "@/lib/cn";
+import { parseDiff } from "@/lib/diff-lines";
 import { groupIssuesByFile } from "@/lib/issue-groups";
+import { markersFor } from "@/lib/issue-markers";
 import { formatDateTime } from "@/lib/format";
 import { MODE_LABEL, SCOPE_LABEL } from "@/lib/labels";
 import {
@@ -20,14 +22,25 @@ interface ReviewReportProps {
   review: Review;
   /** From ?severity=…: show only this level. */
   only?: Severity;
+  /** The code was replaced after this review (older code version). */
+  outdated: boolean;
 }
 
 // The full report on the dark app surface. Issues are grouped by file (worst first) and
 // link to the exact line in the workspace. The severity filter lives in the URL.
-export function ReviewReport({ review, only }: ReviewReportProps) {
+export function ReviewReport({ review, only, outdated }: ReviewReportProps) {
   const counts = countBySeverity(review.issues);
   const groups = groupIssuesByFile(review.issues, only);
   const reportHref = `/projects/${review.projectId}/reviews/${review.id}`;
+  // Diff review: lines that are in the saved diff open right here, not in the workspace,
+  // so the report stays correct after the code is replaced.
+  const diffLines = new Set(
+    review.diff
+      ? parseDiff(review.diff).flatMap((row) =>
+          row.kind !== "hunk" && row.newLine ? [row.newLine] : [],
+        )
+      : [],
+  );
   const chips = [
     { label: "All", count: review.issues.length, severity: undefined },
     ...SEVERITY_ORDER.filter((severity) => counts[severity] > 0).map(
@@ -55,6 +68,17 @@ export function ReviewReport({ review, only }: ReviewReportProps) {
             />
           )}
         </h1>
+        {outdated && (
+          <p className="flex items-start gap-2 text-sm text-silver-400">
+            <History
+              aria-hidden
+              className="mt-0.5 size-4 shrink-0"
+              strokeWidth={1.5}
+            />
+            The code was replaced after this review. Line links open the current
+            code, where lines may have moved.
+          </p>
+        )}
         <SeverityBar issues={review.issues} variant="count" />
         <p className="max-w-3xl text-lg leading-relaxed text-silver-300">
           {review.summary}
@@ -66,6 +90,7 @@ export function ReviewReport({ review, only }: ReviewReportProps) {
           patch={review.diff}
           before={review.filePaths[0]}
           after={review.filePaths[1]}
+          markers={markersFor(review.issues, review.filePaths[1])}
         />
       )}
 
@@ -152,17 +177,26 @@ export function ReviewReport({ review, only }: ReviewReportProps) {
                   >
                     <div className="flex flex-wrap items-center gap-3">
                       <SeverityBadge severity={issue.severity} />
-                      {group.filePath && issue.line && (
-                        <Link
-                          href={workspaceHref(review.projectId, {
-                            file: group.filePath,
-                            line: issue.line,
-                          })}
-                          className="font-mono text-xs text-silver-400 underline decoration-line-strong underline-offset-4 hover:text-paper"
-                        >
-                          Line {issue.line}
-                        </Link>
-                      )}
+                      {group.filePath &&
+                        issue.line &&
+                        (diffLines.has(issue.line) ? (
+                          <a
+                            href={`#diff-L${issue.line}`}
+                            className="font-mono text-xs text-silver-400 underline decoration-line-strong underline-offset-4 hover:text-paper"
+                          >
+                            Line {issue.line} in the change
+                          </a>
+                        ) : (
+                          <Link
+                            href={workspaceHref(review.projectId, {
+                              file: group.filePath,
+                              line: issue.line,
+                            })}
+                            className="font-mono text-xs text-silver-400 underline decoration-line-strong underline-offset-4 hover:text-paper"
+                          >
+                            Line {issue.line}
+                          </Link>
+                        ))}
                     </div>
                     <p className="font-medium text-paper">{issue.title}</p>
                     <p className="leading-relaxed text-silver-400">
