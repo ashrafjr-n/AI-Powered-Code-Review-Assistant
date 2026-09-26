@@ -22,7 +22,6 @@ import { diffFiles, resolveTypedPath } from './review-diff.js';
 import {
   buildDiffReviewMessages,
   buildReviewMessages,
-  MAX_REVIEW_CHARS,
   pickFiles,
   rankForReview,
   type SourceFile,
@@ -40,6 +39,7 @@ const reviewSelect = {
   scope: true,
   filePaths: true,
   diff: true,
+  codeVersion: true,
   summary: true,
   issues: true,
   recommendations: true,
@@ -64,6 +64,8 @@ interface ReviewJob {
   /** Files left out to fit the budget. */
   skipped: number;
   diff: string | null;
+  /** Project.codeVersion when the files were read. */
+  codeVersion: number;
 }
 
 export type ReviewView = Omit<
@@ -108,7 +110,7 @@ export class ReviewsService {
     scope: RunReviewDto['scope'],
     filePaths: string[],
   ) {
-    await this.projects.findOwned(userId, projectId);
+    const { codeVersion } = await this.projects.findOwned(userId, projectId);
     if (scope !== 'PROJECT' && filePaths.length === 0)
       throw new BadRequestException('Pick at least one file.');
 
@@ -132,8 +134,9 @@ export class ReviewsService {
           ? 'These files are hidden for privacy (they usually hold secrets), so they are not reviewed.'
           : 'None of these files are in the project.',
       );
-    const { included, skipped } = pickFiles(rankForReview(readable));
-    return { readable, hiddenPaths, included, skipped };
+    const budget = await this.providers.reviewBudget(userId);
+    const { included, skipped } = pickFiles(rankForReview(readable), budget);
+    return { readable, hiddenPaths, included, skipped, codeVersion };
   }
 
   /** Before a whole-project review: how many files fit the model's budget. */
@@ -180,6 +183,7 @@ export class ReviewsService {
         scope: job.scope,
         filePaths: job.filePaths,
         diff: job.diff,
+        codeVersion: job.codeVersion,
         summary,
         issues: output.issues as unknown as Prisma.InputJsonValue,
         recommendations: output.recommendations,
@@ -198,12 +202,8 @@ export class ReviewsService {
     projectId: string,
     dto: RunReviewDto,
   ): Promise<ReviewJob> {
-    const { included, skipped, hiddenPaths } = await this.selectFiles(
-      userId,
-      projectId,
-      dto.scope,
-      dto.filePaths,
-    );
+    const { included, skipped, hiddenPaths, codeVersion } =
+      await this.selectFiles(userId, projectId, dto.scope, dto.filePaths);
     return {
       messages: buildReviewMessages(dto.mode, included, hiddenPaths),
       checkedFiles: included,
@@ -216,6 +216,7 @@ export class ReviewsService {
             : 'FILES',
       skipped,
       diff: null,
+      codeVersion,
     };
   }
 
@@ -225,7 +226,7 @@ export class ReviewsService {
     projectId: string,
     dto: RunReviewDto,
   ): Promise<ReviewJob> {
-    await this.projects.findOwned(userId, projectId);
+    const { codeVersion } = await this.projects.findOwned(userId, projectId);
     if (dto.filePaths.length !== 2)
       throw new BadRequestException('Pick two different files to compare.');
     // Users can type a name ("auth.ts") or pick a full path. Never trust the
@@ -264,7 +265,7 @@ export class ReviewsService {
       throw new BadRequestException(
         'The two files are identical, so there is nothing to review.',
       );
-    if (diff.numbered.length > MAX_REVIEW_CHARS)
+    if (diff.numbered.length > (await this.providers.reviewBudget(userId)))
       throw new BadRequestException(
         'The change is too large for one review. Compare smaller files.',
       );
@@ -280,6 +281,7 @@ export class ReviewsService {
       scope: 'DIFF',
       skipped: 0,
       diff: diff.patch,
+      codeVersion,
     };
   }
 

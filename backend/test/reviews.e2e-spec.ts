@@ -295,6 +295,8 @@ describe('Reviews (e2e)', () => {
       highestSeverity: 'CRITICAL',
     });
     expect(review.diff).toContain('+++ src/login.v2.ts');
+    // First upload = code version 1; the review remembers the version it read.
+    expect(review.codeVersion).toBe(1);
     expect(review.issues[0].filePath).toBeUndefined();
     expect(review.issues[1]).toMatchObject({
       filePath: 'src/login.v2.ts',
@@ -315,5 +317,19 @@ describe('Reviews (e2e)', () => {
     expect(typed.body.filePaths).toEqual(['src/login.ts', 'src/login.v2.ts']);
     const unknown = await diff(['login.ts', 'nope.ts']).expect(400);
     expect(unknown.body.message).toContain('No file called "nope.ts"');
+
+    // A new upload bumps the version: older reviews are now for older code.
+    await owner
+      .post(`/api/projects/${project.id}/files`)
+      .attach(
+        'file',
+        Buffer.from(zipSync({ 'src/login.ts': strToU8(loginV1) })),
+        'v2.zip',
+      )
+      .expect(201);
+    const { body: after } = await owner
+      .get(`/api/projects/${project.id}`)
+      .expect(200);
+    expect(after.codeVersion).toBe(2);
   });
 });

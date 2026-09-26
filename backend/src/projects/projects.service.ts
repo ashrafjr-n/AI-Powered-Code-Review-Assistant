@@ -10,6 +10,8 @@ export interface ProjectSummary {
   description: string;
   createdAt: Date;
   fileCount: number;
+  /** +1 on every upload: reviews and docs of an older version are outdated. */
+  codeVersion: number;
   /** Last upload: kept / skipped / hidden counts (null before the first upload). */
   uploadStats: UploadStats | null;
   lastReview?: {
@@ -27,6 +29,7 @@ const summarySelect = {
   description: true,
   createdAt: true,
   uploadStats: true,
+  codeVersion: true,
   // Readable files only: sensitive ones are listed but never opened.
   _count: { select: { files: { where: { sensitive: false } } } },
   reviews: {
@@ -59,6 +62,7 @@ function toSummary(row: SummaryRow): ProjectSummary {
     description: row.description,
     createdAt: row.createdAt,
     fileCount: row._count.files,
+    codeVersion: row.codeVersion,
     uploadStats: row.uploadStats as UploadStats | null,
     lastReview: latest
       ? {
@@ -97,10 +101,13 @@ export class ProjectsService {
    * The ownership check for every route under /projects/:id (files, reviews, chat,
    * insights). Another user's project is "not found", so ids reveal nothing.
    */
-  async findOwned(userId: string, id: string): Promise<{ name: string }> {
+  async findOwned(
+    userId: string,
+    id: string,
+  ): Promise<{ name: string; codeVersion: number }> {
     const project = await this.prisma.project.findFirst({
       where: { id, userId },
-      select: { name: true },
+      select: { name: true, codeVersion: true },
     });
     if (!project) throw new NotFoundException('Project not found');
     return project;

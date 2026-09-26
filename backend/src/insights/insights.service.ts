@@ -19,6 +19,8 @@ export interface InsightView {
   kind: InsightKind;
   content: string;
   filePaths: string[];
+  /** Project.codeVersion when the files were read. */
+  codeVersion: number;
   providerName: string;
   model: string;
   createdAt: Date;
@@ -29,6 +31,7 @@ const insightSelect = {
   kind: true,
   content: true,
   filePaths: true,
+  codeVersion: true,
   providerName: true,
   model: true,
   createdAt: true,
@@ -98,6 +101,7 @@ export class InsightsService {
     const data = {
       content,
       filePaths: picked.map((file) => file.path),
+      codeVersion: project.codeVersion,
       providerName: provider.name,
       model: provider.model,
       createdAt: new Date(),

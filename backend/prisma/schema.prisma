@@ -61,6 +61,7 @@ model Project {
   name         String
   description  String        @default("")
   uploadStats  Json? // last upload: kept / skipped counts by reason / redacted secrets
+  codeVersion  Int           @default(0) // +1 on every upload; reviews/docs store the version they read
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   files        File[]
@@ -92,6 +93,7 @@ model Review {
   scope           ReviewScope
   filePaths       String[] // files actually sent to the AI
   diff            String?     @db.Text // DIFF only: the unified diff that was reviewed (kept after re-uploads)
+  codeVersion     Int         @default(0) // Project.codeVersion when the files were read
   summary         String      @db.Text
   issues          Json // [{ title, description, severity, filePath?, line? }] validated with Zod
   recommendations Json // string[] validated with Zod
@@ -161,6 +163,7 @@ model Insight {
   kind         InsightKind
   content      String      @db.Text
   filePaths    String[] // files the model read
+  codeVersion  Int         @default(0) // Project.codeVersion when the files were read
   providerName String // snapshot, like reviews
   model        String
   createdAt    DateTime    @default(now())

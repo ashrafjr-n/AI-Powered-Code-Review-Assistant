@@ -75,7 +75,8 @@ export class FilesService {
       }),
       this.prisma.project.update({
         where: { id: projectId },
-        data: { uploadStats: stats },
+        // New code: reviews and docs of older versions become outdated.
+        data: { uploadStats: stats, codeVersion: { increment: 1 } },
       }),
     ]);
     return stats;
