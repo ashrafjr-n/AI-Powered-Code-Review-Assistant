@@ -4,6 +4,7 @@ import type { Review } from "@/lib/types";
 // Static marketing content, not mock data: it stays after the app is connected.
 export const sampleReview: Review = {
   id: "sample",
+  projectId: "sample",
   mode: "SECURITY",
   scope: "PROJECT",
   filePaths: [

@@ -1,52 +1,65 @@
-// MOCK (frontend-only phase). An in-memory list on the server, replaced by the projects API in C2.
-// It resets when the dev server restarts.
-import type { ProjectSummary } from "@/lib/types";
+// MOCK (frontend-only phase). Replaced by the projects + files API in C2/C3.
+import { highestSeverity } from "@/lib/severity";
+import type { ProjectFile, ProjectSummary } from "@/lib/types";
+import { db, wait, type ProjectRow } from "./db";
+import { crmFiles } from "./sample-code";
 
-let projects: ProjectSummary[] = [
-  {
-    id: "p-crm",
-    name: "CRM Backend",
-    description: "Express + PostgreSQL API for contacts, deals and invoices.",
-    createdAt: "2026-09-24T10:02:00.000Z",
-    fileCount: 86,
-    lastReview: { severity: "CRITICAL", createdAt: "2026-09-26T09:14:00.000Z" },
-  },
-  {
-    id: "p-portfolio",
-    name: "Portfolio Website",
-    description: "Next.js personal site with a blog and a contact form.",
-    createdAt: "2026-09-22T15:40:00.000Z",
-    fileCount: 41,
-    lastReview: { severity: "MEDIUM", createdAt: "2026-09-25T18:30:00.000Z" },
-  },
-  {
-    id: "p-dashboard",
-    name: "Internal Dashboard",
-    description: "",
-    createdAt: "2026-09-20T08:15:00.000Z",
-    fileCount: 0,
-  },
-];
+function toSummary(project: ProjectRow): ProjectSummary {
+  const latest = db.reviews
+    .filter((review) => review.projectId === project.id)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  return {
+    ...project,
+    fileCount: db.files.get(project.id)?.length ?? 0,
+    lastReview: latest
+      ? {
+          severity: highestSeverity(latest.issues),
+          createdAt: latest.createdAt,
+        }
+      : undefined,
+  };
+}
 
 export async function listProjects(): Promise<ProjectSummary[]> {
-  return [...projects].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return db.projects
+    .map(toSummary)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function getProject(id: string): Promise<ProjectSummary | null> {
+  const project = db.projects.find((candidate) => candidate.id === id);
+  return project ? toSummary(project) : null;
+}
+
+export async function getProjectFiles(id: string): Promise<ProjectFile[]> {
+  return db.files.get(id) ?? [];
 }
 
 export async function createProject(input: {
   name: string;
   description: string;
 }): Promise<ProjectSummary> {
-  const project: ProjectSummary = {
+  const project: ProjectRow = {
     id: crypto.randomUUID(),
     name: input.name,
     description: input.description,
     createdAt: new Date().toISOString(),
-    fileCount: 0,
   };
-  projects = [project, ...projects];
-  return project;
+  db.projects.push(project);
+  return toSummary(project);
 }
 
 export async function deleteProject(id: string): Promise<void> {
-  projects = projects.filter((project) => project.id !== id);
+  db.projects = db.projects.filter((project) => project.id !== id);
+  db.files.delete(id);
+  db.reviews = db.reviews.filter((review) => review.projectId !== id);
+  db.chats = db.chats.filter((chat) => chat.projectId !== id);
+  db.insights.delete(id);
+}
+
+// The real backend unzips the upload. The mock pretends the ZIP held the CRM sample.
+export async function uploadZip(projectId: string): Promise<number> {
+  await wait(900);
+  db.files.set(projectId, crmFiles);
+  return crmFiles.length;
 }

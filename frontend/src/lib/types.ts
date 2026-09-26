@@ -16,6 +16,12 @@ export interface ProjectSummary {
   lastReview?: { severity: Severity | null; createdAt: string };
 }
 
+export interface ProjectFile {
+  path: string;
+  size: number;
+  content: string;
+}
+
 export interface ReviewIssue {
   title: string;
   description: string;
@@ -26,6 +32,7 @@ export interface ReviewIssue {
 
 export interface Review {
   id: string;
+  projectId: string;
   mode: ReviewMode;
   scope: ReviewScope;
   filePaths: string[];
@@ -35,4 +42,41 @@ export interface Review {
   providerName: string;
   model: string;
   createdAt: string;
+}
+
+export type MessageRole = "USER" | "ASSISTANT";
+
+export interface ChatMessage {
+  id: string;
+  role: MessageRole;
+  content: string;
+  /** Files the assistant used as context (assistant messages only). */
+  sources?: string[];
+  createdAt: string;
+}
+
+export interface ChatSession {
+  id: string;
+  projectId: string;
+  title: string;
+  createdAt: string;
+  messages: ChatMessage[];
+}
+
+export type InsightKind = "ARCHITECTURE" | "README" | "SETUP" | "API_DOCS";
+
+export interface Insight {
+  kind: InsightKind;
+  content: string;
+  createdAt: string;
+}
+
+export interface AiProvider {
+  id: string;
+  name: string;
+  baseUrl: string;
+  model: string;
+  /** The key itself never reaches the browser. */
+  hasApiKey: boolean;
+  isDefault: boolean;
 }
