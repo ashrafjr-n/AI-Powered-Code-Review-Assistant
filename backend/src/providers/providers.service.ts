@@ -31,6 +31,14 @@ export interface ProviderView {
   isDefault: boolean;
 }
 
+/** Everything needed to call the provider in use. Server-side only (holds the key). */
+export interface ActiveProvider {
+  name: string;
+  baseUrl: string;
+  model: string;
+  apiKey: string | null;
+}
+
 export interface ConnectionResult {
   ok: boolean;
   message: string;
@@ -156,6 +164,31 @@ export class ProvidersService {
           data: { isDefault: true },
         });
     });
+  }
+
+  /** The provider "in use", with its key decrypted. 400 when none is set up. */
+  async getActive(userId: string): Promise<ActiveProvider> {
+    const row = await this.prisma.aiProvider.findFirst({
+      where: { userId, isDefault: true },
+      select: { name: true, baseUrl: true, model: true, apiKeyEncrypted: true },
+    });
+    if (!row)
+      throw new BadRequestException(
+        'Add a model provider in Settings before running a review.',
+      );
+    return {
+      name: row.name,
+      baseUrl: row.baseUrl,
+      model: row.model,
+      apiKey: row.apiKeyEncrypted
+        ? decryptSecret(row.apiKeyEncrypted, this.key)
+        : null,
+    };
+  }
+
+  /** The URL guard for other modules (reviews, chat): check again before every call. */
+  assertCallable(baseUrl: string): Promise<void> {
+    return assertSafeBaseUrl(baseUrl, this.allowLocal);
   }
 
   /** Calls GET {baseUrl}/models. Never throws: the result says what went wrong. */
