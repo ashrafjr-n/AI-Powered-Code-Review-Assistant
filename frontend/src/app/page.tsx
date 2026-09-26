@@ -9,6 +9,7 @@ import { SiteHeader } from "@/components/landing/site-header";
 import {
   finalCta,
   footer,
+  headerCta,
   hero,
   heroEditor,
   lenses,
@@ -19,15 +20,17 @@ import {
   steps,
 } from "@/content/landing";
 import { sampleReview } from "@/content/sample-review";
+import { getOptionalUser } from "@/lib/api/auth";
 
 const providerNames = providers
   .filter((provider) => provider.name !== "Any compatible API")
   .map((provider) => provider.name);
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const user = await getOptionalUser();
   return (
     <>
-      <SiteHeader links={navLinks} />
+      <SiteHeader links={navLinks} cta={headerCta} user={user} />
       {/* The container's side borders are the page's visible column guides. */}
       <main
         id="main"

@@ -1,13 +1,18 @@
 import Link from "next/link";
+import { UserMenu } from "@/components/app/user-menu";
 import { Logo } from "@/components/brand/logo";
 import { buttonClass } from "@/components/ui/button";
 import type { NavLink } from "@/content/landing";
+import type { SessionUser } from "@/lib/types";
 
 interface SiteHeaderProps {
   links: NavLink[];
+  cta: NavLink;
+  /** Signed in → the same account menu as in the app; signed out → "Sign in". */
+  user: SessionUser | null;
 }
 
-export function SiteHeader({ links }: SiteHeaderProps) {
+export function SiteHeader({ links, cta, user }: SiteHeaderProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-ink-950">
       <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between gap-6 px-4 sm:px-8">
@@ -29,11 +34,15 @@ export function SiteHeader({ links }: SiteHeaderProps) {
           </ul>
         </nav>
         <div className="flex items-center gap-2">
-          <Link href="/login" className={buttonClass("ghost", "sm")}>
-            Sign in
-          </Link>
-          <Link href="/register" className={buttonClass("primary", "sm")}>
-            Start reviewing
+          {user ? (
+            <UserMenu user={user} placement="site" />
+          ) : (
+            <Link href="/login" className={buttonClass("ghost", "sm")}>
+              Sign in
+            </Link>
+          )}
+          <Link href={cta.href} className={buttonClass("primary", "sm")}>
+            {cta.label}
           </Link>
         </div>
       </div>

@@ -8,6 +8,9 @@ export interface NavLink {
   href: string;
 }
 
+/** Header button: goes to the app (proxy.ts sends signed-out visitors to /login first). */
+export const headerCta: NavLink = { label: "Dashboard", href: "/projects" };
+
 export const navLinks: NavLink[] = [
   { label: "How it works", href: "#how-it-works" },
   { label: "Lenses", href: "#lenses" },
@@ -169,5 +172,4 @@ export const finalCta = {
 
 export const footer = {
   tagline: "Code review for people who ship.",
-  note: "Built as a full-stack engineering assessment: Next.js, NestJS, PostgreSQL.",
 };
