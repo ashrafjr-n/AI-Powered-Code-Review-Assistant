@@ -32,11 +32,41 @@
 
   --tracking-display: -0.03em;
   --tracking-label: 0.08em;
+
+  /* Signature motion: the red pen draws its line once. */
+  --animate-draw: draw 700ms cubic-bezier(0.65, 0, 0.35, 1) 500ms both;
+  --animate-rise: rise 500ms ease-out both;
+
+  @keyframes draw {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 @layer base {
   html {
     color-scheme: dark;
+    scroll-behavior: smooth;
+  }
+
+  /* Anchor targets stop below the sticky header. */
+  [id] {
+    scroll-margin-top: 5rem;
   }
 
   body {
