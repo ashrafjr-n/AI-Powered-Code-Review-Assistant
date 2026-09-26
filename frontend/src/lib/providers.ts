@@ -18,7 +18,20 @@ export interface ProviderPreset {
   needsKey: boolean;
 }
 
+// Gemini and Groq have free tiers (good for trying Redline with your own key).
 export const PROVIDER_PRESETS: ProviderPreset[] = [
+  {
+    name: "Gemini",
+    baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+    model: "gemini-3.5-flash-lite",
+    needsKey: true,
+  },
+  {
+    name: "Groq",
+    baseUrl: "https://api.groq.com/openai/v1",
+    model: "openai/gpt-oss-120b",
+    needsKey: true,
+  },
   {
     name: "OpenAI",
     baseUrl: "https://api.openai.com/v1",

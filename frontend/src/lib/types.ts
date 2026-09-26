@@ -109,3 +109,17 @@ export interface ConnectionResult {
   message: string;
   models: string[];
 }
+
+/** The built-in demo model (server key, daily limit). */
+export type DemoStatus =
+  | { enabled: false }
+  | {
+      enabled: true;
+      name: string;
+      model: string;
+      used: number;
+      limit: number;
+      /** ISO time of the next reset (00:00 UTC). */
+      resetsAt: string;
+      siteLimitReached: boolean;
+    };

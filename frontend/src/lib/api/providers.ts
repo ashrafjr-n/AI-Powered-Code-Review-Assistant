@@ -1,11 +1,21 @@
 import "server-only";
 import { cache } from "react";
-import type { AiProvider, ConnectionResult, ProviderInput } from "@/lib/types";
+import type {
+  AiProvider,
+  ConnectionResult,
+  DemoStatus,
+  ProviderInput,
+} from "@/lib/types";
 import { apiFetch } from "./client";
 
 // cache(): the layout (provider pill) and the settings page share one request.
 export const listProviders = cache((): Promise<AiProvider[]> =>
   apiFetch<AiProvider[]>("/providers"),
+);
+
+/** cache(): the pill and the settings card share one request. */
+export const getDemoStatus = cache((): Promise<DemoStatus> =>
+  apiFetch<DemoStatus>("/providers/demo"),
 );
 
 export async function getActiveProvider(): Promise<AiProvider | null> {
