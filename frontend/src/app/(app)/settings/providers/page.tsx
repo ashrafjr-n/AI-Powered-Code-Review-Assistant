@@ -1,16 +1,20 @@
 import type { Metadata } from "next";
 import { Cpu, HardDrive } from "lucide-react";
 import { ProviderActions } from "@/components/settings/provider-actions";
+import { DemoCard } from "@/components/settings/demo-card";
 import { ProviderFormDialog } from "@/components/settings/provider-form-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { providerLocation } from "@/lib/providers";
-import { listProviders } from "@/lib/api/providers";
+import { getDemoStatus, listProviders } from "@/lib/api/providers";
 
 export const metadata: Metadata = { title: "Model providers" };
 
 export default async function ProvidersPage() {
-  const providers = await listProviders();
+  const [providers, demo] = await Promise.all([
+    listProviders(),
+    getDemoStatus(),
+  ]);
 
   return (
     <div className="max-w-4xl space-y-8">
@@ -20,11 +24,22 @@ export default async function ProvidersPage() {
         actions={providers.length > 0 ? <ProviderFormDialog /> : undefined}
       />
 
+      {demo.enabled && (
+        <DemoCard
+          model={demo.model}
+          used={demo.used}
+          limit={demo.limit}
+          resetsAt={demo.resetsAt}
+          siteLimitReached={demo.siteLimitReached}
+          inUse={!providers.some((provider) => provider.isDefault)}
+        />
+      )}
+
       {providers.length === 0 ? (
         <EmptyState
           icon={Cpu}
-          title="No model yet"
-          body="Add OpenAI with an API key, or point Redline at LM Studio or Ollama running on your machine."
+          title="No model of your own yet"
+          body="Add Gemini or Groq with a free API key, OpenAI, or point Redline at LM Studio or Ollama running on your machine."
           action={<ProviderFormDialog />}
         />
       ) : (
