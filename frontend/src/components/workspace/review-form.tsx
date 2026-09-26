@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { DemoLimitPanel } from "@/components/app/demo-limit-panel";
 import { FormError } from "@/components/ui/form-error";
 import { MODE_LABEL } from "@/lib/labels";
-import type { ReviewMode } from "@/lib/types";
+import type { ReviewMode, ReviewPlan } from "@/lib/types";
+import { useElapsed, withElapsed } from "@/lib/use-elapsed";
 
 export const REVIEW_FORM_ID = "review-form";
 
@@ -20,16 +21,26 @@ const lensHints: Record<ReviewMode, string> = {
 interface ReviewFormProps {
   projectId: string;
   currentFile?: string;
+  /** How many files a whole-project review sends (null while not loaded). */
+  plan: ReviewPlan | null;
+}
+
+function planText(plan: ReviewPlan): string {
+  const hidden = plan.hidden ? ` · ${plan.hidden} hidden for privacy` : "";
+  return plan.fits >= plan.total
+    ? `All ${plan.total} files fit in one review${hidden}`
+    : `${plan.fits} of ${plan.total} files fit in one review, source code first${hidden}`;
 }
 
 const radioCard =
   "flex cursor-pointer items-start gap-3 rounded-sm border border-line px-3 py-2.5 transition-colors hover:border-line-strong has-checked:border-silver-300 has-checked:bg-ink-850";
 
-export function ReviewForm({ projectId, currentFile }: ReviewFormProps) {
+export function ReviewForm({ projectId, currentFile, plan }: ReviewFormProps) {
   const [state, formAction, pending] = useActionState(
     runReviewAction.bind(null, projectId),
     {},
   );
+  const seconds = useElapsed(pending);
 
   // Submitted by hand (not the form's action prop), because React resets a form after an
   // action. After an error the user would lose their lens, scope and ticked files.
@@ -112,7 +123,7 @@ export function ReviewForm({ projectId, currentFile }: ReviewFormProps) {
           <span>
             <span className="block text-sm text-paper">Whole project</span>
             <span className="block text-xs text-silver-500">
-              Every stored file
+              {plan ? planText(plan) : "Every stored file"}
             </span>
           </span>
         </label>
@@ -120,7 +131,7 @@ export function ReviewForm({ projectId, currentFile }: ReviewFormProps) {
 
       <div className="space-y-2">
         <Button type="submit" disabled={pending} className="w-full">
-          {pending ? "Reviewing…" : "Run review"}
+          {pending ? withElapsed("Reviewing…", seconds) : "Run review"}
         </Button>
         <p aria-live="polite" className="text-center text-xs text-silver-500">
           {pending

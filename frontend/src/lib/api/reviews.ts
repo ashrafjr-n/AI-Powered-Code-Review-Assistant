@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import type {
   ReviewListItem,
+  ReviewPlan,
   ReviewMode,
   ReviewScope,
   Severity,
@@ -53,5 +54,12 @@ export function runReview(
   return apiFetch<ReviewListItem>(
     `/projects/${encodeURIComponent(projectId)}/reviews`,
     { method: "POST", body: JSON.stringify(input) },
+  );
+}
+
+/** How many files a whole-project review would send (shown before running it). */
+export function getReviewPlan(projectId: string): Promise<ReviewPlan> {
+  return apiFetch<ReviewPlan>(
+    `/projects/${encodeURIComponent(projectId)}/reviews/plan`,
   );
 }

@@ -3,23 +3,25 @@ import { SeverityBadge } from "@/components/ui/severity-badge";
 import { formatDate } from "@/lib/format";
 import { MODE_LABEL, SCOPE_LABEL } from "@/lib/labels";
 import { highestSeverity } from "@/lib/severity";
-import type { Review } from "@/lib/types";
+import type { Review, ReviewPlan } from "@/lib/types";
 import { ReviewForm } from "./review-form";
 
 interface ReviewPanelProps {
   projectId: string;
   currentFile?: string;
   reviews: Review[];
+  plan: ReviewPlan | null;
 }
 
 export function ReviewPanel({
   projectId,
   currentFile,
   reviews,
+  plan,
 }: ReviewPanelProps) {
   return (
     <div className="space-y-8 p-4">
-      <ReviewForm projectId={projectId} currentFile={currentFile} />
+      <ReviewForm projectId={projectId} currentFile={currentFile} plan={plan} />
       <section aria-labelledby="recent-reviews" className="space-y-3">
         <h2
           id="recent-reviews"

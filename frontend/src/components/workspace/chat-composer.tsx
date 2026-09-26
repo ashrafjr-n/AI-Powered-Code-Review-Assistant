@@ -9,6 +9,7 @@ import {
 } from "@/app/(app)/projects/[id]/actions";
 import { DemoLimitPanel } from "@/components/app/demo-limit-panel";
 import { FormError } from "@/components/ui/form-error";
+import { useElapsed, withElapsed } from "@/lib/use-elapsed";
 
 interface ChatComposerProps {
   projectId: string;
@@ -33,6 +34,8 @@ export function ChatComposer({
     {},
   );
 
+  const seconds = useElapsed(pending);
+
   // Enter sends, Shift+Enter makes a new line.
   function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && !event.shiftKey) {
@@ -48,7 +51,9 @@ export function ChatComposer({
           <p className="ml-8 rounded-md bg-ink-800 px-3 py-2 text-sm text-paper">
             {pendingQuestion}
           </p>
-          <p className="font-mono text-xs text-silver-500">Reading the code…</p>
+          <p className="font-mono text-xs text-silver-500">
+            {withElapsed("Reading the code…", seconds)}
+          </p>
         </div>
       )}
       {state.demo && <DemoLimitPanel notice={state.demo} />}

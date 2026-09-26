@@ -6,6 +6,7 @@ import { generateInsightAction } from "@/app/(app)/projects/[id]/actions";
 import { DemoLimitPanel } from "@/components/app/demo-limit-panel";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
+import { useElapsed, withElapsed } from "@/lib/use-elapsed";
 
 interface InsightFormProps {
   projectId: string;
@@ -19,6 +20,7 @@ export function InsightForm({ projectId, label, children }: InsightFormProps) {
     generateInsightAction.bind(null, projectId),
     {},
   );
+  const seconds = useElapsed(pending);
 
   return (
     <form action={formAction} className="space-y-3">
@@ -33,7 +35,7 @@ export function InsightForm({ projectId, label, children }: InsightFormProps) {
           disabled={pending}
           className="shrink-0"
         >
-          {pending ? "Generating…" : label}
+          {pending ? withElapsed("Generating…", seconds) : label}
         </Button>
       </div>
     </form>
