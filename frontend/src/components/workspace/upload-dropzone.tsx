@@ -8,7 +8,7 @@ import { FormError } from "@/components/ui/form-error";
 import { errorMessage } from "@/lib/api/error-message";
 import { cn } from "@/lib/cn";
 import { formatBytes } from "@/lib/format";
-import { MAX_ZIP_BYTES, zipProblem } from "@/lib/upload";
+import { MAX_PICKED_ZIP_BYTES, slimZip, zipProblem } from "@/lib/upload";
 
 interface UploadDropzoneProps {
   projectId: string;
@@ -20,15 +20,25 @@ export function UploadDropzone({ projectId }: UploadDropzoneProps) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
-  // The ZIP goes straight to the backend (next.config rewrites /api), not through a
-  // Server Action: those accept 1 MB bodies. The backend checks ownership and limits again.
+  // 1. Slim the ZIP here (drop node_modules, build output, binaries).
+  // 2. Send it straight to the backend (next.config rewrites /api), not through a
+  //    Server Action: those accept 1 MB bodies. The backend checks everything again.
   function send(file: File) {
     const problem = zipProblem(file.name, file.size);
     setError(problem ?? undefined);
     if (problem) return;
-    const body = new FormData();
-    body.set("file", file);
     startTransition(async () => {
+      const slim = slimZip(new Uint8Array(await file.arrayBuffer()));
+      if (!slim.ok) {
+        setError(slim.error);
+        return;
+      }
+      const body = new FormData();
+      body.set(
+        "file",
+        new Blob([slim.zip], { type: "application/zip" }),
+        file.name,
+      );
       const response = await fetch(
         `/api/projects/${encodeURIComponent(projectId)}/files`,
         { method: "POST", body },
@@ -91,8 +101,9 @@ export function UploadDropzone({ projectId }: UploadDropzoneProps) {
           {pending ? "Unpacking your code…" : "Drop a .zip of your project"}
         </span>
         <span className="mt-2 max-w-sm text-sm leading-relaxed text-silver-400">
-          or click to choose a file. Max {formatBytes(MAX_ZIP_BYTES)}.
-          node_modules, build output, .git and binary files are skipped.
+          or click to choose a file, up to {formatBytes(MAX_PICKED_ZIP_BYTES)}.
+          node_modules, build output, .git and binary files are removed in your
+          browser before upload.
         </span>
         <input
           type="file"
