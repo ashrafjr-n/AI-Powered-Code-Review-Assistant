@@ -7,6 +7,7 @@ import {
 import type { MessageRole } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { providerClient } from '../providers/provider-client.js';
+import { ProjectsService } from '../projects/projects.service.js';
 import { ProvidersService } from '../providers/providers.service.js';
 import { buildChatMessages, HISTORY_MESSAGES } from './chat-prompt.js';
 import type { AskDto } from './chat.schemas.js';
@@ -48,6 +49,7 @@ export class ChatService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly providers: ProvidersService,
+    private readonly projects: ProjectsService,
   ) {}
 
   // ponytail: returns every session with all messages; load only the open one if
@@ -56,7 +58,7 @@ export class ChatService {
     userId: string,
     projectId: string,
   ): Promise<ChatSessionView[]> {
-    await this.findProject(userId, projectId);
+    await this.projects.findOwned(userId, projectId);
     return this.prisma.chatSession.findMany({
       where: { projectId },
       orderBy: { createdAt: 'desc' },
@@ -77,7 +79,7 @@ export class ChatService {
     dto: AskDto,
   ): Promise<{ sessionId: string }> {
     const askedAt = new Date();
-    const project = await this.findProject(userId, projectId);
+    const project = await this.projects.findOwned(userId, projectId);
     const session = dto.sessionId
       ? await this.prisma.chatSession.findFirst({
           where: { id: dto.sessionId, projectId },
@@ -165,14 +167,5 @@ export class ChatService {
         throw new BadGatewayException('The model returned an empty answer.');
       return answer.slice(0, 20_000);
     });
-  }
-
-  private async findProject(userId: string, projectId: string) {
-    const project = await this.prisma.project.findFirst({
-      where: { id: projectId, userId },
-      select: { name: true },
-    });
-    if (!project) throw new NotFoundException('Project not found');
-    return project;
   }
 }

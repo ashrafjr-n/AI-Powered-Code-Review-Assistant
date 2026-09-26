@@ -2,11 +2,11 @@ import {
   BadGatewayException,
   BadRequestException,
   Injectable,
-  NotFoundException,
 } from '@nestjs/common';
 import type { InsightKind } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { providerClient } from '../providers/provider-client.js';
+import { ProjectsService } from '../projects/projects.service.js';
 import { ProvidersService } from '../providers/providers.service.js';
 import { buildInsightMessages, pickInsightFiles } from './insight-prompt.js';
 
@@ -39,10 +39,11 @@ export class InsightsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly providers: ProvidersService,
+    private readonly projects: ProjectsService,
   ) {}
 
   async list(userId: string, projectId: string): Promise<InsightView[]> {
-    await this.findProject(userId, projectId);
+    await this.projects.findOwned(userId, projectId);
     return this.prisma.insight.findMany({
       where: { projectId },
       orderBy: { createdAt: 'desc' },
@@ -56,7 +57,7 @@ export class InsightsService {
     projectId: string,
     kind: InsightKind,
   ): Promise<InsightView> {
-    const project = await this.findProject(userId, projectId);
+    const project = await this.projects.findOwned(userId, projectId);
     const files = await this.prisma.file.findMany({
       where: { projectId },
       orderBy: { path: 'asc' },
@@ -107,14 +108,5 @@ export class InsightsService {
       update: data,
       select: insightSelect,
     });
-  }
-
-  private async findProject(userId: string, projectId: string) {
-    const project = await this.prisma.project.findFirst({
-      where: { id: projectId, userId },
-      select: { name: true },
-    });
-    if (!project) throw new NotFoundException('Project not found');
-    return project;
   }
 }
