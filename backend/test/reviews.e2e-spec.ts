@@ -108,6 +108,7 @@ describe('Reviews (e2e)', () => {
         Buffer.from(
           zipSync({
             'README.md': strToU8('# Shop\n'),
+            '.env': strToU8('STRIPE_SECRET=do-not-leak-this-value'),
             'src/app.ts': strToU8('const a = 1;\n'),
             'src/config.ts': strToU8('export const key = "sk_live_123";\n'),
           }),
@@ -139,6 +140,10 @@ describe('Reviews (e2e)', () => {
     expect(prompts).toHaveLength(2);
     expect(prompts[0]).toContain('=== FILE: src/config.ts ===');
     expect(prompts[1]).toContain('That reply was not valid');
+    // The .env file is named, never sent.
+    expect(prompts[0]).toContain('NOT SENT (privacy)');
+    expect(prompts[0]).toContain('.env');
+    expect(prompts[0]).not.toContain('do-not-leak-this-value');
     expect(review).toMatchObject({
       mode: 'SECURITY',
       scope: 'PROJECT',

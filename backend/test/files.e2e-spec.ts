@@ -66,12 +66,17 @@ describe('Files (e2e)', () => {
         'shop.zip',
       )
       .expect(201);
-    expect(upload.body).toEqual({ fileCount: 2 });
+    expect(upload.body).toEqual({
+      kept: 2,
+      sensitive: 0,
+      skipped: { ignored: 0, binary: 0, tooLarge: 0 },
+      redacted: 0,
+    });
 
     const list = await owner.get(base).expect(200);
     expect(list.body).toEqual([
-      { path: 'README.md', size: 6 },
-      { path: 'src/app.ts', size: 12 },
+      { path: 'README.md', size: 6, sensitive: false },
+      { path: 'src/app.ts', size: 12, sensitive: false },
     ]);
     const file = await owner
       .get(`${base}/content`)
@@ -87,7 +92,7 @@ describe('Files (e2e)', () => {
       .attach('file', zip({ 'b.ts': 'b' }), 'b.zip')
       .expect(201);
     expect((await owner.get(base).expect(200)).body).toEqual([
-      { path: 'b.ts', size: 1 },
+      { path: 'b.ts', size: 1, sensitive: false },
     ]);
 
     await other.get(base).expect(404);
@@ -116,5 +121,72 @@ describe('Files (e2e)', () => {
       .post(base)
       .attach('file', Buffer.alloc(10 * 1024 * 1024 + 1), 'big.zip')
       .expect(413);
+  });
+
+  it('keeps secrets private: sensitive files by path only, redacted code, browser stats', async () => {
+    const email = `files-privacy-${stamp}@test.dev`;
+    emails.push(email);
+    const owner = await signedIn(email);
+    const { body: project } = await owner
+      .post('/api/projects')
+      .send({ name: 'Privacy' })
+      .expect(201);
+    const base = `/api/projects/${project.id}/files`;
+
+    const { body: stats } = await owner
+      .post(base)
+      .field(
+        'skipped',
+        JSON.stringify({ ignored: 1200, binary: 3, tooLarge: 1 }),
+      )
+      .attach(
+        'file',
+        zip({
+          '.env': 'DB_PASSWORD=super-secret-value',
+          '.env.example': 'DB_PASSWORD=',
+          'src/pay.ts': 'const key = "sk_live_51HxQz8ExampleSecretKey";',
+        }),
+        'p.zip',
+      )
+      .expect(201);
+    expect(stats).toEqual({
+      kept: 2,
+      sensitive: 1,
+      skipped: { ignored: 1200, binary: 3, tooLarge: 1 },
+      redacted: 1,
+    });
+
+    const list = await owner.get(base).expect(200);
+    expect(list.body).toContainEqual({
+      path: '.env',
+      size: 30,
+      sensitive: true,
+    });
+    const hidden = await owner
+      .get(`${base}/content`)
+      .query({ path: '.env' })
+      .expect(403);
+    expect(hidden.body.code).toBe('SENSITIVE_FILE');
+    const code = await owner
+      .get(`${base}/content`)
+      .query({ path: 'src/pay.ts' })
+      .expect(200);
+    expect(code.body.content).toBe('const key = "‹redacted›";');
+
+    // Nothing secret is stored in the database.
+    const rows = await app
+      .get(PrismaService)
+      .file.findMany({
+        where: { projectId: project.id },
+        select: { content: true },
+      });
+    expect(JSON.stringify(rows)).not.toMatch(/super-secret-value|sk_live_51/);
+    const saved = await app
+      .get(PrismaService)
+      .project.findUniqueOrThrow({
+        where: { id: project.id },
+        select: { uploadStats: true },
+      });
+    expect(saved.uploadStats).toEqual(stats);
   });
 });
