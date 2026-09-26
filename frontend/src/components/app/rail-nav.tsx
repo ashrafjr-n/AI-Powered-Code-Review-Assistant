@@ -19,6 +19,9 @@ interface Tip {
 export function RailNav() {
   const pathname = usePathname();
   const [tip, setTip] = useState<Tip | null>(null);
+  const activeIndex = appNav.findIndex(
+    ({ href }) => pathname === href || pathname.startsWith(`${href}/`),
+  );
 
   const follow = (label: string) => (event: PointerEvent) =>
     setTip({ label, left: event.clientX + 14, top: event.clientY + 14 });
@@ -29,9 +32,19 @@ export function RailNav() {
 
   return (
     <nav aria-label="App">
-      <ul className="flex flex-col items-center gap-1">
-        {appNav.map(({ label, href, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(`${href}/`);
+      <ul className="relative flex flex-col items-center gap-1">
+        {/* One indicator that slides to the active icon (items are 40px + 4px gap;
+            the 20px line is centered on the 40px icon). */}
+        <li
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute top-0 left-0 h-5 w-0.5 rounded-full bg-silver-200 transition-[translate,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+            activeIndex === -1 && "opacity-0",
+          )}
+          style={{ translate: `0 ${Math.max(activeIndex, 0) * 44 + 10}px` }}
+        />
+        {appNav.map(({ label, href, icon: Icon }, index) => {
+          const active = index === activeIndex;
           return (
             <li key={href}>
               <Link
@@ -44,10 +57,9 @@ export function RailNav() {
                 onBlur={() => setTip(null)}
                 onClick={() => setTip(null)}
                 className={cn(
-                  "relative flex size-10 items-center justify-center rounded-sm transition-colors",
-                  "before:absolute before:top-2.5 before:-left-3 before:h-5 before:w-0.5 before:rounded-full before:transition-colors",
+                  "flex size-10 items-center justify-center rounded-sm transition-colors duration-200",
                   active
-                    ? "bg-ink-850 text-paper before:bg-silver-200"
+                    ? "bg-ink-850 text-paper"
                     : "text-silver-500 hover:bg-ink-850 hover:text-paper",
                 )}
               >
