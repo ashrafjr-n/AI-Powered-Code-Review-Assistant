@@ -10,7 +10,7 @@ import type { SkipCounts } from "./types";
 /** Biggest ZIP the user can pick (it is slimmed in memory, in the browser). */
 export const MAX_PICKED_ZIP_BYTES = 200 * 1024 * 1024;
 /** Must match MAX_ZIP_BYTES in backend/src/files/unzip.ts. */
-export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const MAX_FILE_BYTES = 512 * 1024;
 
 // Same lists as the backend (the two apps share no code, decision D4).

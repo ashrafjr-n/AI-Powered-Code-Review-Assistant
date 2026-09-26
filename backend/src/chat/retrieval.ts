@@ -1,7 +1,7 @@
 // Simple keyword retrieval (the brief allows it; no embeddings, D17/D62):
 // score every file by the question's words, keep the best few.
 
-export const TOP_FILES = 3;
+const TOP_FILES = 3;
 
 // Words that appear in almost every question and say nothing about the code.
 const STOP_WORDS = new Set(

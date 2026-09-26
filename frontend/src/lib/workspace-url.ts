@@ -2,7 +2,7 @@ import type { InsightKind } from "./types";
 
 export type WorkspaceTab = "review" | "chat" | "insights";
 
-export const WORKSPACE_TABS: WorkspaceTab[] = ["review", "chat", "insights"];
+const WORKSPACE_TABS: WorkspaceTab[] = ["review", "chat", "insights"];
 
 interface WorkspaceLink {
   file?: string;

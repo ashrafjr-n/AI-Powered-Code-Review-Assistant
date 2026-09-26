@@ -4,7 +4,7 @@ import type { Severity } from '../generated/prisma/client.js';
 // The model's answer is untrusted input: parse it, validate it with Zod, and only keep
 // file paths and line numbers that really exist in the reviewed files.
 
-export const SEVERITY_ORDER: Severity[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
+const SEVERITY_ORDER: Severity[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
 
 const cut = (max: number) => (text: string) =>
   text.length > max ? `${text.slice(0, max - 1)}…` : text;
@@ -29,7 +29,7 @@ const issueSchema = z.object({
   line: lineSchema,
 });
 
-export const reviewOutputSchema = z.object({
+const reviewOutputSchema = z.object({
   summary: z.string().trim().min(1).transform(cut(2000)),
   issues: z.array(issueSchema).max(100).default([]),
   recommendations: z

@@ -2,7 +2,7 @@ import type { ReviewMode } from '../generated/prisma/client.js';
 
 // ponytail: fixed budget (~12k tokens) so small local models (Ollama, LM Studio) aren't
 // overflowed; make it a provider setting if users run large-context models.
-export const MAX_REVIEW_CHARS = 48_000;
+const MAX_REVIEW_CHARS = 48_000;
 
 const LENS: Record<ReviewMode, { name: string; focus: string }> = {
   SECURITY: {

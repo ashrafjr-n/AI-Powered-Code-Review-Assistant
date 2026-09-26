@@ -44,7 +44,7 @@ function nextReset(day: Date): Date {
 }
 
 /** 429 with a code the frontend turns into the "add your own model" panel. */
-export function demoLimitError(reason: 'user' | 'site', resetsAt: Date) {
+function demoLimitError(reason: 'user' | 'site', resetsAt: Date) {
   return new HttpException(
     {
       statusCode: HttpStatus.TOO_MANY_REQUESTS,
