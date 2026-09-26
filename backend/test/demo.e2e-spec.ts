@@ -171,7 +171,7 @@ describe('Demo model (e2e)', () => {
       e.ask(),
       e.ask(),
     ]);
-    const statuses = results.map((r) => r.status).sort();
+    const statuses = results.map((r) => r.status).sort((a, b) => a - b);
     expect(statuses).toEqual([201, 201, 429, 429, 429]);
   });
 
