@@ -2,7 +2,8 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { backendUrl, errorMessage } from "@/lib/api/client";
+import { backendUrl } from "@/lib/api/client";
+import { errorMessage } from "@/lib/api/error-message";
 import { AUTH_COOKIE } from "@/lib/auth-cookie";
 import { safeNextPath } from "@/lib/safe-redirect";
 
