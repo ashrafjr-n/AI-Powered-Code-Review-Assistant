@@ -14,7 +14,11 @@ import { ReviewsModule } from './reviews/reviews.module.js';
 @Module({
   imports: [
     // Default: 100 requests per minute per IP. Auth routes set a stricter limit.
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60_000, limit: 100 }],
+      // Shown to users as is (the default is "ThrottlerException: Too Many Requests").
+      errorMessage: 'Too many requests. Wait a minute, then try again.',
+    }),
     PrismaModule,
     AuthModule,
     ProjectsModule,
