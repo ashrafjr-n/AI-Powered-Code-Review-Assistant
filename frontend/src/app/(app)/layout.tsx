@@ -1,6 +1,6 @@
 import { AppSidebar } from "@/components/app/app-sidebar";
 import { AppTopbar } from "@/components/app/app-topbar";
-import { getActiveProvider } from "@/mocks/providers";
+import { getActiveProvider } from "@/lib/api/providers";
 import { getCurrentUser } from "@/lib/api/auth";
 
 // The signed-in app: sidebar + top bar around every page.

@@ -8,7 +8,7 @@ import type {
   Severity,
 } from "@/lib/types";
 import { db, wait } from "./db";
-import { getActiveProvider } from "./providers";
+import { getActiveProvider } from "@/lib/api/providers";
 
 export interface ReviewFilters {
   q?: string;

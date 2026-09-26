@@ -1,7 +1,7 @@
 // MOCK (frontend-only phase). One in-memory "database" for all mock modules.
 // It lives in the server process and resets when the dev server restarts.
 // Replaced piece by piece by the NestJS API in C1–C7, then this folder is deleted.
-import type { AiProvider, ChatSession, Insight, Review } from "@/lib/types";
+import type { ChatSession, Insight, Review } from "@/lib/types";
 import { crmFiles, lineOf, portfolioFiles } from "./sample-code";
 
 export const db = {
@@ -166,25 +166,6 @@ export const db = {
   chats: [] as ChatSession[],
 
   insights: new Map<string, Insight[]>(),
-
-  providers: [
-    {
-      id: "prov-lmstudio",
-      name: "LM Studio",
-      baseUrl: "http://localhost:1234/v1",
-      model: "qwen2.5-coder-14b",
-      hasApiKey: false,
-      isDefault: true,
-    },
-    {
-      id: "prov-openai",
-      name: "OpenAI",
-      baseUrl: "https://api.openai.com/v1",
-      model: "gpt-5-mini",
-      hasApiKey: true,
-      isDefault: false,
-    },
-  ] as AiProvider[],
 };
 
 export const wait = (ms: number) =>
