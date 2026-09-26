@@ -1,4 +1,5 @@
 import { unzipSync } from 'fflate';
+import { isSensitivePath, redactSecrets } from './sensitive.js';
 
 // Upload limits. The frontend checks MAX_ZIP_BYTES too (frontend/src/lib/upload.ts),
 // but only this side is trusted.
@@ -53,6 +54,23 @@ export interface ExtractedFile {
   path: string;
   content: string;
   size: number;
+  /** Env/key/credential file: path only, content is "" (see sensitive.ts). */
+  sensitive: boolean;
+}
+
+/** Why files were left out, so the UI can say "580 kept · 1,240 skipped". */
+export type SkipCounts = {
+  /** Dependencies, build output, caches, lock files, generated files. */
+  ignored: number;
+  binary: number;
+  tooLarge: number;
+};
+
+export interface ExtractResult {
+  files: ExtractedFile[];
+  skipped: SkipCounts;
+  /** How many secrets inside code were replaced with ‹redacted›. */
+  redacted: number;
 }
 
 export class InvalidZipError extends Error {}
@@ -71,7 +89,7 @@ function safePath(name: string): string | null {
 // Generated files: minified bundles and source maps are not code anyone reviews.
 const GENERATED_FILE = /\.(min\.(js|css)|map)$/;
 
-function skipped(path: string): boolean {
+function isIgnored(path: string): boolean {
   const parts = path.split('/');
   const name = parts[parts.length - 1];
   return (
@@ -109,17 +127,39 @@ function stripSharedRoot(files: ExtractedFile[]): ExtractedFile[] {
   }));
 }
 
-/** Unzips in memory and keeps only readable text files. Throws InvalidZipError. */
-export function extractZip(zip: Uint8Array): ExtractedFile[] {
+/**
+ * Unzips in memory and keeps readable text files (secrets redacted) plus sensitive files
+ * by path only. Throws InvalidZipError.
+ */
+export function extractZip(zip: Uint8Array): ExtractResult {
   let total = 0;
+  const skipped: SkipCounts = { ignored: 0, binary: 0, tooLarge: 0 };
+  const sensitive: ExtractedFile[] = [];
   let entries: Record<string, Uint8Array>;
   try {
     entries = unzipSync(zip, {
       // Runs before a file is inflated, so skipped files cost nothing.
       filter: (entry) => {
         const path = safePath(entry.name);
-        if (!path || entry.name.endsWith('/') || skipped(path)) return false;
-        if (entry.originalSize > MAX_FILE_BYTES) return false;
+        if (!path || entry.name.endsWith('/')) return false;
+        if (isIgnored(path)) {
+          skipped.ignored++;
+          return false;
+        }
+        // Never inflated: we keep the path so the tree shows the file exists.
+        if (isSensitivePath(path)) {
+          sensitive.push({
+            path,
+            content: '',
+            size: entry.originalSize,
+            sensitive: true,
+          });
+          return false;
+        }
+        if (entry.originalSize > MAX_FILE_BYTES) {
+          skipped.tooLarge++;
+          return false;
+        }
         // fflate inflates into a buffer of exactly originalSize, so a lying header
         // can't produce more bytes than we counted here.
         total += entry.originalSize;
@@ -135,19 +175,36 @@ export function extractZip(zip: Uint8Array): ExtractedFile[] {
     throw new InvalidZipError('This file is not a valid ZIP archive.');
   }
 
+  let redacted = 0;
   const files: ExtractedFile[] = [];
   for (const [name, bytes] of Object.entries(entries)) {
-    const content = asText(bytes);
-    if (content === null) continue;
-    files.push({ path: safePath(name)!, content, size: bytes.length });
+    const text = asText(bytes);
+    if (text === null) {
+      skipped.binary++;
+      continue;
+    }
+    const clean = redactSecrets(text);
+    redacted += clean.count;
+    files.push({
+      path: safePath(name)!,
+      content: clean.content,
+      size: Buffer.byteLength(clean.content),
+      sensitive: false,
+    });
   }
   if (files.length === 0)
     throw new InvalidZipError(
       'No readable source files were found in this ZIP.',
     );
-  if (files.length > MAX_FILES)
+  if (files.length + sensitive.length > MAX_FILES)
     throw new InvalidZipError(
       `The ZIP has more than ${MAX_FILES} source files.`,
     );
-  return stripSharedRoot(files).sort((a, b) => a.path.localeCompare(b.path));
+  return {
+    files: stripSharedRoot([...files, ...sensitive]).sort((a, b) =>
+      a.path.localeCompare(b.path),
+    ),
+    skipped,
+    redacted,
+  };
 }
