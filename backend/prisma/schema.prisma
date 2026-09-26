@@ -43,6 +43,7 @@ model User {
   createdAt    DateTime     @default(now())
   projects     Project[]
   aiProviders  AiProvider[]
+  demoUsage    DemoUsage[]
 }
 
 model Project {
@@ -126,4 +127,16 @@ model Message {
   createdAt DateTime    @default(now())
 
   @@index([sessionId, createdAt])
+}
+
+// Requests a user made today with the built-in demo model (server-side key, daily limits).
+// The site-wide total is the sum of all rows of one day.
+model DemoUsage {
+  userId String   @db.Uuid
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day    DateTime @db.Date // UTC day
+  count  Int      @default(0)
+
+  @@id([userId, day])
+  @@index([day])
 }
