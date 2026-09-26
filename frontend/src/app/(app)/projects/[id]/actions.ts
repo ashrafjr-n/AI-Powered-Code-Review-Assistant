@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getProject } from "@/lib/api/projects";
 import { MODE_LABEL } from "@/lib/labels";
 import type { InsightKind, ReviewMode, ReviewScope } from "@/lib/types";
 import { zipProblem } from "@/lib/upload";
@@ -15,6 +16,10 @@ export interface ActionState {
   error?: string;
 }
 
+// Server Actions are public endpoints: always confirm (via the backend) that the project
+// belongs to the signed-in user before touching it.
+const NOT_YOURS: ActionState = { error: "Project not found." };
+
 // ── Upload ─────────────────────────────────────────────────────────────
 // MOCK (until C3): receives only the file name and size. The real upload sends the ZIP
 // straight from the browser to the backend (multipart), not through a Server Action,
@@ -24,6 +29,7 @@ export async function uploadZipAction(
   _previous: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  if (!(await getProject(projectId))) return NOT_YOURS;
   const name = String(formData.get("fileName") ?? "");
   const size = Number(formData.get("fileSize") ?? 0);
   const problem = zipProblem(name, size);
@@ -42,6 +48,7 @@ export async function runReviewAction(
   _previous: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  if (!(await getProject(projectId))) return NOT_YOURS;
   const mode = MODES.find((value) => value === formData.get("mode"));
   const scope = formData.get("scope");
   if (!mode) return { error: "Pick a review lens." };
@@ -87,6 +94,7 @@ export async function sendChatAction(
   _previous: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  if (!(await getProject(projectId))) return NOT_YOURS;
   const question = String(formData.get("question") ?? "").trim();
   if (!question) return { error: "Write a question first." };
   if (question.length > 2000)
@@ -112,9 +120,11 @@ export async function generateInsightAction(
   _previous: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const project = await getProject(projectId);
+  if (!project) return NOT_YOURS;
   const kind = INSIGHT_KINDS.find((value) => value === formData.get("kind"));
   if (!kind) return { error: "Pick what to generate." };
-  await generateInsight(projectId, kind);
+  await generateInsight(projectId, project.name, kind);
   revalidatePath(`/projects/${projectId}`);
   return {};
 }
