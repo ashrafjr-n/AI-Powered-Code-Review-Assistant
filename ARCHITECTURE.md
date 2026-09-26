@@ -77,7 +77,7 @@ Why:
 - **One place for data access.** Pages and actions import only `src/lib/api/*`, one module per backend area.
 - `proxy.ts` (the Next.js 16 name for middleware) only checks that a cookie exists, to redirect quickly. The backend's global `AuthGuard` does the real check on every request.
 
-The one exception is the ZIP upload. Server Actions accept at most 1 MB, so the browser sends the ZIP to `/api/...` and `next.config.ts` rewrites it to NestJS. It's the same origin, so the cookie goes along.
+The one exception is the upload (a ZIP, loose files or a folder, always re-zipped in the browser first). Server Actions accept at most 1 MB, so the browser sends the ZIP to `/api/...` and `next.config.ts` rewrites it to NestJS. It's the same origin, so the cookie goes along.
 
 ## 3. Backend modules
 
