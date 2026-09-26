@@ -10,6 +10,8 @@ test("slimZip keeps source files and drops dependencies, build output and binari
     "shop/node_modules/react/index.js": strToU8("x".repeat(100_000)),
     "shop/.next/cache/a.js": strToU8("cache"),
     "shop/package-lock.json": strToU8("{}"),
+    "shop/.vite/deps/react.js": strToU8("cache"),
+    "shop/public/app.min.js": strToU8("x"),
     "shop/logo.png": new Uint8Array([137, 80, 78, 71, 0, 1]),
   });
 

@@ -8,6 +8,9 @@ describe('extractZip', () => {
       'shop-main/README.md': strToU8('# Shop'),
       'shop-main/node_modules/x/index.js': strToU8('junk'),
       'shop-main/package-lock.json': strToU8('{}'),
+      'shop-main/.vite/deps/react.js': strToU8('cache'),
+      'shop-main/dist-lib/app.min.js': strToU8('x'),
+      'shop-main/src/app.js.map': strToU8('{}'),
       'shop-main/logo.png': new Uint8Array([137, 80, 78, 71, 0, 1]),
     });
     // The shared "shop-main/" folder is removed.

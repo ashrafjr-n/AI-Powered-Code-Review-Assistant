@@ -26,6 +26,25 @@ const SKIP_FOLDERS = new Set([
   ".venv",
   "venv",
   "__MACOSX",
+  // Tool caches and build output of common frameworks.
+  ".vite",
+  ".turbo",
+  ".cache",
+  ".parcel-cache",
+  ".svelte-kit",
+  ".nuxt",
+  ".output",
+  ".vercel",
+  ".wrangler",
+  ".expo",
+  ".angular",
+  ".gradle",
+  ".pytest_cache",
+  ".mypy_cache",
+  ".tox",
+  "bower_components",
+  ".yarn",
+  ".pnpm-store",
 ]);
 const SKIP_FILES = new Set([
   ".DS_Store",
@@ -41,12 +60,17 @@ export function zipProblem(name: string, size: number): string | null {
   return null;
 }
 
+// Generated files: minified bundles and source maps.
+const GENERATED_FILE = /\.(min\.(js|css)|map)$/;
+
 function skipped(name: string): boolean {
   const parts = name.split("/");
+  const file = parts[parts.length - 1];
   return (
     name.endsWith("/") ||
     parts.some((part) => SKIP_FOLDERS.has(part)) ||
-    SKIP_FILES.has(parts[parts.length - 1])
+    SKIP_FILES.has(file) ||
+    GENERATED_FILE.test(file)
   );
 }
 

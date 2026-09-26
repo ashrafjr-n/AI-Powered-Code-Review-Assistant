@@ -22,6 +22,25 @@ const SKIP_FOLDERS = new Set([
   '.venv',
   'venv',
   '__MACOSX',
+  // Tool caches and build output of common frameworks.
+  '.vite',
+  '.turbo',
+  '.cache',
+  '.parcel-cache',
+  '.svelte-kit',
+  '.nuxt',
+  '.output',
+  '.vercel',
+  '.wrangler',
+  '.expo',
+  '.angular',
+  '.gradle',
+  '.pytest_cache',
+  '.mypy_cache',
+  '.tox',
+  'bower_components',
+  '.yarn',
+  '.pnpm-store',
 ]);
 const SKIP_FILES = new Set([
   '.DS_Store',
@@ -49,11 +68,16 @@ function safePath(name: string): string | null {
   return parts.join('/');
 }
 
+// Generated files: minified bundles and source maps are not code anyone reviews.
+const GENERATED_FILE = /\.(min\.(js|css)|map)$/;
+
 function skipped(path: string): boolean {
   const parts = path.split('/');
+  const name = parts[parts.length - 1];
   return (
     parts.some((part) => SKIP_FOLDERS.has(part)) ||
-    SKIP_FILES.has(parts[parts.length - 1])
+    SKIP_FILES.has(name) ||
+    GENERATED_FILE.test(name)
   );
 }
 
