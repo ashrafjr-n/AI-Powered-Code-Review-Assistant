@@ -94,3 +94,18 @@ export interface AiProvider {
   hasApiKey: boolean;
   isDefault: boolean;
 }
+
+export interface ProviderInput {
+  name: string;
+  baseUrl: string;
+  model: string;
+  /** Empty = keep the stored key (on edit) or no key (local servers). */
+  apiKey: string;
+}
+
+/** Result of "Test connection" (GET {baseUrl}/models on the backend). */
+export interface ConnectionResult {
+  ok: boolean;
+  message: string;
+  models: string[];
+}
