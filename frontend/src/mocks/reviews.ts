@@ -1,12 +1,14 @@
 // MOCK (frontend-only phase). Replaced by the review engine + history API in C5.
 import { highestSeverity } from "@/lib/severity";
-import type { Review, ReviewMode, ReviewScope, Severity } from "@/lib/types";
+import type {
+  Review,
+  ReviewListItem,
+  ReviewMode,
+  ReviewScope,
+  Severity,
+} from "@/lib/types";
 import { db, wait } from "./db";
 import { getActiveProvider } from "./providers";
-
-export interface ReviewListItem extends Review {
-  projectName: string;
-}
 
 export interface ReviewFilters {
   q?: string;

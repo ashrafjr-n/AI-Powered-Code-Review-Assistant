@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
-import type { SessionUser } from "@/mocks/session";
+import type { SessionUser } from "@/lib/types";
 
 interface UserMenuProps {
   user: SessionUser;

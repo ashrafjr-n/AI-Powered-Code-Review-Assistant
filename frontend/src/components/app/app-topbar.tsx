@@ -1,5 +1,4 @@
-import type { AiProvider } from "@/lib/types";
-import type { SessionUser } from "@/mocks/session";
+import type { AiProvider, SessionUser } from "@/lib/types";
 import { MobileNav } from "./mobile-nav";
 import { ProviderPill } from "./provider-pill";
 import { UserMenu } from "./user-menu";

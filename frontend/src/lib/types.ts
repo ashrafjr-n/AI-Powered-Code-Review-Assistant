@@ -44,6 +44,15 @@ export interface Review {
   createdAt: string;
 }
 
+export interface ReviewListItem extends Review {
+  projectName: string;
+}
+
+export interface SessionUser {
+  name: string;
+  email: string;
+}
+
 export type MessageRole = "USER" | "ASSISTANT";
 
 export interface ChatMessage {
