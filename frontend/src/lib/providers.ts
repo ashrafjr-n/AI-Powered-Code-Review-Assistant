@@ -11,6 +11,21 @@ export function providerLocation(baseUrl: string): "Local" | "Cloud" {
   }
 }
 
+/**
+ * Probably Ollama or LM Studio (on this machine or behind a tunnel): their default
+ * context is small, so whole-project reviews can be cut off without a warning.
+ */
+export function isLikelyLocalModel(provider: {
+  name: string;
+  baseUrl: string;
+}): boolean {
+  return (
+    providerLocation(provider.baseUrl) === "Local" ||
+    /:(11434|1234)(\/|$)/.test(provider.baseUrl) ||
+    /ollama|lm ?studio/i.test(provider.name)
+  );
+}
+
 export interface ProviderPreset {
   name: string;
   baseUrl: string;
