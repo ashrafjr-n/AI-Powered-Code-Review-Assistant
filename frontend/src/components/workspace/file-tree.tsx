@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { ChevronRight, FileCode2, Folder } from "lucide-react";
-import type { TreeNode } from "@/lib/file-tree";
+import { ChevronRight, FileCode2, Folder, LockKeyhole } from "lucide-react";
+import { HoverNote } from "@/components/ui/cursor-tip";
+import { privacyText } from "@/content/privacy";
+import type { TreeFile, TreeNode } from "@/lib/file-tree";
 import { cn } from "@/lib/cn";
 import { workspaceHref, type WorkspaceTab } from "@/lib/workspace-url";
 
@@ -68,41 +70,94 @@ function TreeLevel({
         </details>
       </li>
     ) : (
-      <li
+      <FileRow
         key={node.path}
-        style={indent}
-        className={cn(
-          "flex h-7 items-center gap-1.5 rounded-sm pr-2",
-          node.path === selectedPath
-            ? "bg-ink-850 text-paper"
-            : "text-silver-300 hover:bg-ink-850 hover:text-paper",
-        )}
-      >
-        {selectForm ? (
-          <input
-            type="checkbox"
-            name="files"
-            value={node.path}
-            form={selectForm}
-            aria-label={`Select ${node.path} for review`}
-            className="ml-[5px] size-3.5 shrink-0 accent-silver-200"
-          />
-        ) : (
-          <span className="w-3.5 shrink-0" />
-        )}
+        node={node}
+        indent={indent}
+        selected={node.path === selectedPath}
+        href={workspaceHref(projectId, { file: node.path, tab })}
+        selectForm={selectForm}
+      />
+    ),
+  );
+}
+
+interface FileRowProps {
+  node: TreeFile;
+  indent: { paddingLeft: string };
+  selected: boolean;
+  href: ReturnType<typeof workspaceHref>;
+  selectForm?: string;
+}
+
+function FileRow({ node, indent, selected, href, selectForm }: FileRowProps) {
+  const label = (
+    <>
+      {node.sensitive ? (
+        <LockKeyhole
+          aria-hidden
+          className="size-3.5 shrink-0"
+          strokeWidth={1.5}
+        />
+      ) : (
         <FileCode2
           aria-hidden
           className="size-3.5 shrink-0 text-silver-500"
           strokeWidth={1.5}
         />
-        <Link
-          href={workspaceHref(projectId, { file: node.path, tab })}
-          aria-current={node.path === selectedPath ? "page" : undefined}
-          className="min-w-0 flex-1 truncate focus-visible:outline-offset-0"
-        >
-          {node.name}
-        </Link>
-      </li>
-    ),
+      )}
+      <Link
+        href={href}
+        aria-current={selected ? "page" : undefined}
+        className="min-w-0 flex-1 truncate focus-visible:outline-offset-0"
+      >
+        {node.name}
+        {node.sensitive && (
+          <span className="sr-only"> (hidden for privacy)</span>
+        )}
+      </Link>
+    </>
+  );
+  const labelClass = "flex h-full min-w-0 flex-1 items-center gap-1.5";
+
+  return (
+    <li
+      style={indent}
+      className={cn(
+        "flex h-7 items-center gap-1.5 rounded-sm pr-2",
+        selected
+          ? "bg-ink-850 text-paper"
+          : "hover:bg-ink-850 hover:text-paper",
+        node.sensitive
+          ? "text-silver-500 italic"
+          : !selected && "text-silver-300",
+      )}
+    >
+      {selectForm ? (
+        <input
+          type="checkbox"
+          name="files"
+          value={node.path}
+          form={selectForm}
+          // Hidden files are never reviewed, so they can't be picked.
+          disabled={node.sensitive}
+          aria-label={
+            node.sensitive
+              ? `${node.path} is hidden for privacy`
+              : `Select ${node.path} for review`
+          }
+          className="ml-[5px] size-3.5 shrink-0 accent-silver-200 disabled:opacity-30"
+        />
+      ) : (
+        <span className="w-3.5 shrink-0" />
+      )}
+      {node.sensitive ? (
+        <HoverNote note={privacyText.hiddenFileNote} className={labelClass}>
+          {label}
+        </HoverNote>
+      ) : (
+        <span className={labelClass}>{label}</span>
+      )}
+    </li>
   );
 }

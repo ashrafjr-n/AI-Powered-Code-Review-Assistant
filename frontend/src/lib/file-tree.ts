@@ -5,6 +5,7 @@ export interface TreeFile {
   name: string;
   path: string;
   size: number;
+  sensitive: boolean;
 }
 
 export interface TreeFolder {
@@ -32,7 +33,7 @@ function sortNodes(nodes: TreeNode[]): TreeNode[] {
 }
 
 export function buildFileTree(
-  files: { path: string; size: number }[],
+  files: { path: string; size: number; sensitive?: boolean }[],
 ): TreeNode[] {
   const root: TreeNode[] = [];
 
@@ -56,6 +57,7 @@ export function buildFileTree(
       name: parts[parts.length - 1],
       path: file.path,
       size: file.size,
+      sensitive: file.sensitive ?? false,
     });
   }
 
