@@ -22,7 +22,10 @@ export function ProjectContext({
 }: ProjectContextProps) {
   const Name = asHeading ? "h1" : "p";
   return (
-    <div className="flex h-8 min-w-0 items-center gap-2 border-l border-line pl-3 sm:gap-3">
+    <div
+      data-page-context
+      className="flex h-8 min-w-0 items-center gap-2 border-l border-line pl-3 sm:gap-3"
+    >
       <Link
         href={backHref}
         aria-label={backLabel}
