@@ -2,14 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { listFiles } from "@/lib/api/files";
 import { getProject } from "@/lib/api/projects";
 import { MODE_LABEL } from "@/lib/labels";
 import type { InsightKind, ReviewMode, ReviewScope } from "@/lib/types";
-import { zipProblem } from "@/lib/upload";
 import { workspaceHref } from "@/lib/workspace-url";
 import { sendChatMessage } from "@/mocks/chat";
 import { generateInsight } from "@/mocks/insights";
-import { getProjectFiles, uploadZip } from "@/mocks/projects";
 import { runReview } from "@/mocks/reviews";
 
 export interface ActionState {
@@ -19,26 +18,6 @@ export interface ActionState {
 // Server Actions are public endpoints: always confirm (via the backend) that the project
 // belongs to the signed-in user before touching it.
 const NOT_YOURS: ActionState = { error: "Project not found." };
-
-// ── Upload ─────────────────────────────────────────────────────────────
-// MOCK (until C3): receives only the file name and size. The real upload sends the ZIP
-// straight from the browser to the backend (multipart), not through a Server Action,
-// because Server Actions accept 1 MB bodies by default.
-export async function uploadZipAction(
-  projectId: string,
-  _previous: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  if (!(await getProject(projectId))) return NOT_YOURS;
-  const name = String(formData.get("fileName") ?? "");
-  const size = Number(formData.get("fileSize") ?? 0);
-  const problem = zipProblem(name, size);
-  if (problem) return { error: problem };
-
-  await uploadZip(projectId);
-  revalidatePath(`/projects/${projectId}`);
-  return {};
-}
 
 // ── Review ─────────────────────────────────────────────────────────────
 const MODES = Object.keys(MODE_LABEL) as ReviewMode[];
@@ -54,9 +33,7 @@ export async function runReviewAction(
   if (!mode) return { error: "Pick a review lens." };
 
   // Never trust paths from the browser: keep only files that exist in this project.
-  const projectPaths = (await getProjectFiles(projectId)).map(
-    (file) => file.path,
-  );
+  const projectPaths = (await listFiles(projectId)).map((file) => file.path);
   let filePaths: string[];
   let reviewScope: ReviewScope;
   if (scope === "PROJECT") {
