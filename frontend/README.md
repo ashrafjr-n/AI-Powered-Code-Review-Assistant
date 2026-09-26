@@ -47,7 +47,7 @@ npm run dev                  # http://localhost:3000
 ## How it works
 - **Data:** pages are async Server Components that read through `lib/api/`. Changes are Server Actions that check input, call the backend and `revalidatePath`.
 - **URL is state:** the selected file, line, tab, chat and open document live in the query string, so links, reload and back/forward work.
-- **Uploads:** the ZIP is slimmed in the browser (drops `node_modules`, builds, binaries; empties secret files) and sent to `/api/...`, which `next.config.ts` rewrites to the backend. Server Actions are limited to 1 MB bodies.
+- **Uploads:** the ZIP is slimmed in the browser (drops `node_modules`, builds, binaries; empties secret files) and sent to `/api/...`, which `next.config.ts` rewrites to the backend. Server Actions are limited to 1 MB bodies. The same drop zone opens from **Replace** in the workspace to upload a newer version (all files are replaced; past reviews keep their file list).
 
 ## Deploy (Vercel)
 Root directory `frontend`, env `BACKEND_URL` and `BFF_SECRET`. For long reviews the function max duration must be at least 280 s.
