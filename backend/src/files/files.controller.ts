@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   Param,
@@ -13,12 +14,14 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { CurrentUserId } from '../auth/current-user-id.decorator.js';
 import {
   fileContentQuerySchema,
+  parseClientSkipped,
   type FileContentQuery,
 } from './files.schemas.js';
 import {
   FilesService,
   type FileEntry,
   type FileWithContent,
+  type UploadStats,
 } from './files.service.js';
 import { MAX_ZIP_BYTES } from './unzip.js';
 
@@ -41,9 +44,16 @@ export class FilesController {
     @CurrentUserId() userId: string,
     @Param('id', new ParseUUIDPipe({ version: '7' })) id: string,
     @UploadedFile() file: UploadedZip | undefined,
-  ): Promise<{ fileCount: number }> {
+    // Multipart text field "skipped" (JSON): what the browser removed before upload.
+    @Body() body: { skipped?: unknown },
+  ): Promise<UploadStats> {
     if (!file) throw new BadRequestException('Attach a .zip file.');
-    return this.files.upload(userId, id, file.buffer);
+    return this.files.upload(
+      userId,
+      id,
+      file.buffer,
+      parseClientSkipped(body?.skipped),
+    );
   }
 
   @Get()
