@@ -2,13 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { askQuestion } from "@/lib/api/chat";
 import { ApiError } from "@/lib/api/client";
 import { getProject } from "@/lib/api/projects";
 import { runReview } from "@/lib/api/reviews";
 import { MODE_LABEL } from "@/lib/labels";
 import type { InsightKind, ReviewMode, ReviewScope } from "@/lib/types";
 import { workspaceHref } from "@/lib/workspace-url";
-import { sendChatMessage } from "@/mocks/chat";
 import { generateInsight } from "@/mocks/insights";
 
 export interface ActionState {
@@ -63,19 +63,38 @@ export async function runReviewAction(
 }
 
 // ── Chat ───────────────────────────────────────────────────────────────
+export interface ChatActionState extends ActionState {
+  /** Given back after an error, so the textarea keeps what the user typed. */
+  question?: string;
+}
+
 export async function sendChatAction(
   projectId: string,
   sessionId: string | null,
-  _previous: ActionState,
+  _previous: ChatActionState,
   formData: FormData,
-): Promise<ActionState> {
-  if (!(await getProject(projectId))) return NOT_YOURS;
+): Promise<ChatActionState> {
   const question = String(formData.get("question") ?? "").trim();
   if (!question) return { error: "Write a question first." };
   if (question.length > 2000)
-    return { error: "Keep questions under 2000 characters." };
+    return { error: "Keep questions under 2000 characters.", question };
 
-  const id = await sendChatMessage(projectId, sessionId, question);
+  // The backend checks that the project (and conversation) are yours.
+  let id: string;
+  try {
+    id = await askQuestion(projectId, sessionId, question);
+  } catch (error) {
+    // 400 (no files / no provider), 404 (not yours), 429 (limit), 502 (model failed).
+    if (
+      error instanceof ApiError &&
+      (error.status < 500 || error.status === 502)
+    )
+      return {
+        error: error.status === 404 ? NOT_YOURS.error : error.message,
+        question,
+      };
+    throw error;
+  }
   if (id !== sessionId)
     redirect(workspaceHref(projectId, { tab: "chat", chat: id }));
   revalidatePath(`/projects/${projectId}`);

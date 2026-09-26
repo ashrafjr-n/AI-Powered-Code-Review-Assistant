@@ -3,7 +3,10 @@
 import { useActionState, useOptimistic } from "react";
 import type { KeyboardEvent } from "react";
 import { ArrowUp } from "lucide-react";
-import { sendChatAction } from "@/app/(app)/projects/[id]/actions";
+import {
+  sendChatAction,
+  type ChatActionState,
+} from "@/app/(app)/projects/[id]/actions";
 import { FormError } from "@/components/ui/form-error";
 
 interface ChatComposerProps {
@@ -22,7 +25,7 @@ export function ChatComposer({
     null,
   );
   const [state, formAction, pending] = useActionState(
-    async (previous: { error?: string }, formData: FormData) => {
+    async (previous: ChatActionState, formData: FormData) => {
       setPendingQuestion(String(formData.get("question") ?? ""));
       return sendChatAction(projectId, sessionId, previous, formData);
     },
@@ -69,7 +72,10 @@ export function ChatComposer({
           <label htmlFor="chat-question" className="sr-only">
             Ask about this code
           </label>
+          {/* Remounts with the failed question, so an error never loses the user's text. */}
           <textarea
+            key={state.question ?? ""}
+            defaultValue={state.question}
             id="chat-question"
             name="question"
             rows={3}
