@@ -1,22 +1,10 @@
+import { SeverityBar } from "@/components/review/severity-bar";
 import { SectionLabel } from "@/components/ui/section-label";
 import { SeverityBadge } from "@/components/ui/severity-badge";
 import { formatDate } from "@/lib/format";
 import { MODE_LABEL, SCOPE_LABEL } from "@/lib/labels";
-import {
-  countBySeverity,
-  reviewVerdict,
-  SEVERITY_LABEL,
-  SEVERITY_ORDER,
-} from "@/lib/severity";
-import type { Review, Severity } from "@/lib/types";
-
-// Bar segment tones on the light paper surface. Red only for CRITICAL.
-const segmentClass: Record<Severity, string> = {
-  CRITICAL: "bg-red",
-  HIGH: "bg-ink-950",
-  MEDIUM: "bg-ink-800/50",
-  LOW: "bg-silver-300",
-};
+import { countBySeverity, reviewVerdict } from "@/lib/severity";
+import type { Review } from "@/lib/types";
 
 interface SampleReportProps {
   review: Review;
@@ -25,11 +13,6 @@ interface SampleReportProps {
 // The only light ("paper") surface on the landing page: a real-looking report.
 export function SampleReport({ review }: SampleReportProps) {
   const counts = countBySeverity(review.issues);
-  const segments = SEVERITY_ORDER.map((severity) => ({
-    severity,
-    count: counts[severity],
-    percent: (counts[severity] / review.issues.length) * 100,
-  })).filter((segment) => segment.count > 0);
   const hasCritical = counts.CRITICAL > 0;
   const meta = [
     `${review.providerName} · ${review.model}`,
@@ -74,25 +57,7 @@ export function SampleReport({ review }: SampleReportProps) {
           </p>
 
           <div className="mt-8">
-            <div className="flex h-2 gap-0.5 overflow-hidden rounded-sm">
-              {segments.map((segment) => (
-                <span
-                  key={segment.severity}
-                  className={segmentClass[segment.severity]}
-                  style={{ width: `${segment.percent}%` }}
-                />
-              ))}
-            </div>
-            <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-1 font-mono text-xs text-silver-500">
-              {SEVERITY_ORDER.map((severity) => (
-                <li key={severity}>
-                  <span className="text-ink-950 tabular-nums">
-                    {counts[severity]}
-                  </span>{" "}
-                  {SEVERITY_LABEL[severity]}
-                </li>
-              ))}
-            </ul>
+            <SeverityBar issues={review.issues} surface="paper" />
           </div>
 
           <p className="mt-10 max-w-3xl text-lg leading-relaxed">
