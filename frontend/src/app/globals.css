@@ -79,6 +79,20 @@
     color: var(--color-ink-950);
   }
 
+  /* Everything clickable shows the hand cursor (Tailwind's reset gives buttons the arrow). */
+  a[href],
+  button:not(:disabled),
+  [role="button"],
+  summary,
+  select:not(:disabled),
+  label:has(input:not(:disabled)),
+  input:is([type="checkbox"], [type="radio"], [type="file"]):not(:disabled) {
+    cursor: pointer;
+  }
+  :is(button, select, input):disabled {
+    cursor: not-allowed;
+  }
+
   /* One visible focus style for every interactive element. */
   :focus-visible {
     outline: 2px solid var(--color-paper);
