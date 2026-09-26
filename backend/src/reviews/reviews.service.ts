@@ -18,7 +18,7 @@ import {
   type ReviewIssue,
   type ReviewOutput,
 } from './review-output.js';
-import { diffFiles } from './review-diff.js';
+import { diffFiles, resolveTypedPath } from './review-diff.js';
 import {
   buildDiffReviewMessages,
   buildReviewMessages,
@@ -226,16 +226,33 @@ export class ReviewsService {
     dto: RunReviewDto,
   ): Promise<ReviewJob> {
     await this.projects.findOwned(userId, projectId);
-    const [beforePath, afterPath] = dto.filePaths;
-    if (dto.filePaths.length !== 2 || beforePath === afterPath)
+    if (dto.filePaths.length !== 2)
       throw new BadRequestException('Pick two different files to compare.');
-    // Never trust paths from the browser: both must be stored in this project.
+    // Users can type a name ("auth.ts") or pick a full path. Never trust the
+    // browser: both are resolved against the paths stored in this project.
+    const stored = await this.prisma.file.findMany({
+      where: { projectId },
+      select: { path: true },
+    });
+    const resolved = dto.filePaths.map((typed) =>
+      resolveTypedPath(
+        typed,
+        stored.map((file) => file.path),
+      ),
+    );
+    const [beforePath, afterPath] = resolved.map((result) => {
+      if ('error' in result) throw new BadRequestException(result.error);
+      return result.path;
+    });
+    if (beforePath === afterPath)
+      throw new BadRequestException('Pick two different files to compare.');
     const files = await this.prisma.file.findMany({
-      where: { projectId, path: { in: dto.filePaths } },
+      where: { projectId, path: { in: [beforePath, afterPath] } },
       select: { path: true, content: true, sensitive: true },
     });
     const before = files.find((file) => file.path === beforePath);
     const after = files.find((file) => file.path === afterPath);
+    // Only if a new upload replaced the files between the two queries.
     if (!before || !after)
       throw new BadRequestException('Both files must be in the project.');
     if (before.sensitive || after.sensitive)

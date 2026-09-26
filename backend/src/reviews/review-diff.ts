@@ -50,3 +50,22 @@ export function diffFiles(
   }
   return { patch: patch.join('\n'), numbered: numbered.join('\n') };
 }
+
+/**
+ * What the user typed → one stored path: the exact path, or a unique ending
+ * ("auth.ts" → "src/auth.ts"). `error` is a sentence for the user.
+ */
+export function resolveTypedPath(
+  typed: string,
+  paths: string[],
+): { path: string } | { error: string } {
+  const name = typed.trim().replace(/^\.?\//, '');
+  if (paths.includes(name)) return { path: name };
+  const matches = paths.filter((path) => path.endsWith(`/${name}`));
+  if (matches.length === 1) return { path: matches[0] };
+  if (matches.length === 0)
+    return { error: `No file called "${name}" in this project.` };
+  return {
+    error: `"${name}" matches ${matches.length} files. Type more of the path, for example ${matches[0]}.`,
+  };
+}

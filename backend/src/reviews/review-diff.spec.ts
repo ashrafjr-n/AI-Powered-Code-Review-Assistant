@@ -1,4 +1,4 @@
-import { diffFiles } from './review-diff.js';
+import { diffFiles, resolveTypedPath } from './review-diff.js';
 
 describe('diffFiles', () => {
   const before = {
@@ -26,5 +26,31 @@ describe('diffFiles', () => {
 
   it('returns null for identical files', () => {
     expect(diffFiles(before, { ...before, path: 'copy.ts' })).toBeNull();
+  });
+});
+
+describe('resolveTypedPath', () => {
+  const paths = ['src/auth.ts', 'src/db.ts', 'api/db.ts'];
+
+  it('accepts the full path or a unique file name', () => {
+    expect(resolveTypedPath('src/auth.ts', paths)).toEqual({
+      path: 'src/auth.ts',
+    });
+    expect(resolveTypedPath(' ./auth.ts ', paths)).toEqual({
+      path: 'src/auth.ts',
+    });
+    expect(resolveTypedPath('src/db.ts', paths)).toEqual({ path: 'src/db.ts' });
+  });
+
+  it('explains unknown and ambiguous names', () => {
+    expect(resolveTypedPath('nope.ts', paths)).toEqual({
+      error: 'No file called "nope.ts" in this project.',
+    });
+    expect(resolveTypedPath('db.ts', paths)).toEqual({
+      error:
+        '"db.ts" matches 2 files. Type more of the path, for example src/db.ts.',
+    });
+    // Only whole path parts count: "th.ts" is not "auth.ts".
+    expect(resolveTypedPath('th.ts', paths)).toHaveProperty('error');
   });
 });
