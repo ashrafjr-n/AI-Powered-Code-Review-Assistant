@@ -85,7 +85,8 @@ function InsightOutput({ insight }: { insight: Insight }) {
     <article className="rounded-md border border-line bg-ink-950">
       <header className="flex items-center justify-between gap-2 border-b border-line py-1 pr-1 pl-3">
         <span className="font-mono text-xs text-silver-500">
-          {TITLES[insight.kind]} · {formatDateTime(insight.createdAt)}
+          {TITLES[insight.kind]} · {insight.model} ·{" "}
+          {formatDateTime(insight.createdAt)}
         </span>
         <CopyButton text={insight.content} />
       </header>

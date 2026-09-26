@@ -13,9 +13,9 @@ import { ReviewPanel } from "@/components/workspace/review-panel";
 import { UploadDropzone } from "@/components/workspace/upload-dropzone";
 import { buildFileTree } from "@/lib/file-tree";
 import { firstParam, parseTab } from "@/lib/workspace-url";
-import { listInsights } from "@/mocks/insights";
 import { listChatSessions } from "@/lib/api/chat";
 import { getFile, listFiles } from "@/lib/api/files";
+import { listInsights } from "@/lib/api/insights";
 import { getProject } from "@/lib/api/projects";
 import { listReviews } from "@/lib/api/reviews";
 
