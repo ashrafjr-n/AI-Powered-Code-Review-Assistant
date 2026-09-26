@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useId, useState, useTransition } from "react";
 import { Check, CircleAlert, Pencil, Plus } from "lucide-react";
 import {
   saveProviderAction,
@@ -29,6 +29,15 @@ interface TestResult {
 
 export function ProviderFormDialog({ provider }: ProviderFormDialogProps) {
   const editing = Boolean(provider);
+  // Many of these dialogs live on one page (add + one per provider): ids must be unique.
+  const uid = useId();
+  const ids = {
+    name: `${uid}-name`,
+    url: `${uid}-url`,
+    key: `${uid}-key`,
+    model: `${uid}-model`,
+    models: `${uid}-models`,
+  };
   const [open, setOpen] = useState(false);
   const initialValues = {
     name: provider?.name ?? "",
@@ -121,9 +130,9 @@ export function ProviderFormDialog({ provider }: ProviderFormDialogProps) {
               </div>
             </div>
           )}
-          <Field id="provider-name" label="Name">
+          <Field id={ids.name} label="Name">
             <Input
-              id="provider-name"
+              id={ids.name}
               name="name"
               required
               maxLength={60}
@@ -132,12 +141,12 @@ export function ProviderFormDialog({ provider }: ProviderFormDialogProps) {
             />
           </Field>
           <Field
-            id="provider-url"
+            id={ids.url}
             label="Base URL"
             hint="For example http://localhost:1234/v1"
           >
             <Input
-              id="provider-url"
+              id={ids.url}
               name="baseUrl"
               type="url"
               required
@@ -145,12 +154,12 @@ export function ProviderFormDialog({ provider }: ProviderFormDialogProps) {
               title="Starts with http:// or https://"
               value={values.baseUrl}
               onChange={set("baseUrl")}
-              aria-describedby="provider-url-hint"
+              aria-describedby={`${ids.url}-hint`}
               className="font-mono"
             />
           </Field>
           <Field
-            id="provider-key"
+            id={ids.key}
             label="API key"
             hint={
               editing && provider?.hasApiKey
@@ -159,30 +168,30 @@ export function ProviderFormDialog({ provider }: ProviderFormDialogProps) {
             }
           >
             <Input
-              id="provider-key"
+              id={ids.key}
               name="apiKey"
               type="password"
               autoComplete="off"
               maxLength={500}
               value={values.apiKey}
               onChange={set("apiKey")}
-              aria-describedby="provider-key-hint"
+              aria-describedby={`${ids.key}-hint`}
               className="font-mono"
             />
           </Field>
-          <Field id="provider-model" label="Model">
+          <Field id={ids.model} label="Model">
             <Input
-              id="provider-model"
+              id={ids.model}
               name="model"
               required
               maxLength={100}
-              list="provider-models"
+              list={ids.models}
               value={values.model}
               onChange={set("model")}
               className="font-mono"
             />
             {/* Native autocomplete from the models the test connection found. */}
-            <datalist id="provider-models">
+            <datalist id={ids.models}>
               {test?.models.map((model) => (
                 <option key={model} value={model} />
               ))}
