@@ -6,11 +6,7 @@ import {
 } from '@nestjs/common';
 import type { Prisma, ReviewMode } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import {
-  describeProviderError,
-  providerClient,
-  ProviderError,
-} from '../providers/provider-client.js';
+import { providerClient } from '../providers/provider-client.js';
 import {
   ProvidersService,
   type ActiveProvider,
@@ -105,9 +101,14 @@ export class ReviewsService {
     if (files.length === 0)
       throw new BadRequestException('None of these files are in the project.');
 
-    const provider = await this.providers.getActive(userId);
     const { included, skipped } = pickFiles(files);
-    const output = await this.ask(provider, dto.mode, included);
+    const { provider, output } = await this.providers.useProvider(
+      userId,
+      async (provider) => ({
+        provider,
+        output: await this.ask(provider, dto.mode, included),
+      }),
+    );
     const summary = skipped
       ? `${output.summary} (${skipped} file${skipped === 1 ? ' was' : 's were'} left out to fit the model's context.)`
       : output.summary;
@@ -177,13 +178,6 @@ export class ReviewsService {
     mode: ReviewMode,
     files: SourceFile[],
   ): Promise<ReviewOutput> {
-    try {
-      await this.providers.assertCallable(provider.baseUrl);
-    } catch (error) {
-      if (error instanceof ProviderError)
-        throw new BadRequestException(error.message);
-      throw error;
-    }
     const client = providerClient(
       provider.baseUrl,
       provider.apiKey,
@@ -196,17 +190,13 @@ export class ReviewsService {
     const deadline = Date.now() + REVIEW_TIMEOUT_MS;
 
     for (let attempt = 1; ; attempt++) {
-      let text: string;
-      try {
-        // No temperature: some models (e.g. OpenAI reasoning models) reject anything but the default.
-        const completion = await client.chat.completions.create(
-          { model: provider.model, messages },
-          { timeout: deadline - Date.now() },
-        );
-        text = completion.choices[0]?.message?.content ?? '';
-      } catch (error) {
-        throw new BadGatewayException(describeProviderError(error));
-      }
+      // No temperature: some models (e.g. OpenAI reasoning models) reject anything but
+      // the default. SDK errors bubble up to useProvider(), which turns them into a 502.
+      const completion = await client.chat.completions.create(
+        { model: provider.model, messages },
+        { timeout: deadline - Date.now() },
+      );
+      const text = completion.choices[0]?.message?.content ?? '';
       try {
         return parseReviewOutput(text, files);
       } catch (error) {

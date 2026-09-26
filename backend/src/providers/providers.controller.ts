@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUserId } from '../auth/current-user-id.decorator.js';
+import { DemoService, type DemoStatus } from './demo.service.js';
 import {
   providerInputSchema,
   testConnectionSchema,
@@ -25,11 +26,20 @@ import {
 
 @Controller('providers')
 export class ProvidersController {
-  constructor(private readonly providers: ProvidersService) {}
+  constructor(
+    private readonly providers: ProvidersService,
+    private readonly demo: DemoService,
+  ) {}
 
   @Get()
   list(@CurrentUserId() userId: string): Promise<ProviderView[]> {
     return this.providers.list(userId);
+  }
+
+  /** The built-in demo model and how much of today's allowance this user has left. */
+  @Get('demo')
+  demoStatus(@CurrentUserId() userId: string): Promise<DemoStatus> {
+    return this.demo.status(userId);
   }
 
   @Post()

@@ -6,11 +6,7 @@ import {
 } from '@nestjs/common';
 import type { MessageRole } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import {
-  describeProviderError,
-  providerClient,
-  ProviderError,
-} from '../providers/provider-client.js';
+import { providerClient } from '../providers/provider-client.js';
 import { ProvidersService } from '../providers/providers.service.js';
 import { buildChatMessages, HISTORY_MESSAGES } from './chat-prompt.js';
 import type { AskDto } from './chat.schemas.js';
@@ -148,20 +144,12 @@ export class ChatService {
     });
   }
 
-  private async callModel(
+  private callModel(
     userId: string,
     input: Parameters<typeof buildChatMessages>[0],
   ): Promise<string> {
-    const provider = await this.providers.getActive(userId);
-    try {
-      await this.providers.assertCallable(provider.baseUrl);
-    } catch (error) {
-      if (error instanceof ProviderError)
-        throw new BadRequestException(error.message);
-      throw error;
-    }
-    let answer: string;
-    try {
+    // SDK errors bubble up to useProvider(), which turns them into a 502.
+    return this.providers.useProvider(userId, async (provider) => {
       const completion = await providerClient(
         provider.baseUrl,
         provider.apiKey,
@@ -170,13 +158,11 @@ export class ChatService {
         model: provider.model,
         messages: buildChatMessages(input),
       });
-      answer = completion.choices[0]?.message?.content?.trim() ?? '';
-    } catch (error) {
-      throw new BadGatewayException(describeProviderError(error));
-    }
-    if (!answer)
-      throw new BadGatewayException('The model returned an empty answer.');
-    return answer.slice(0, 20_000);
+      const answer = completion.choices[0]?.message?.content?.trim();
+      if (!answer)
+        throw new BadGatewayException('The model returned an empty answer.');
+      return answer.slice(0, 20_000);
+    });
   }
 
   private async findProject(userId: string, projectId: string) {

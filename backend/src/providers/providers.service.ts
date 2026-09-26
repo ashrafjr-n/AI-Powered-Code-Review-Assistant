@@ -1,8 +1,11 @@
 import {
+  BadGatewayException,
   BadRequestException,
+  HttpException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import OpenAI from 'openai';
 import { requireEnv } from '../common/env.js';
 import {
   decryptSecret,
@@ -10,6 +13,7 @@ import {
   parseKey,
 } from '../common/secret-box.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { demoBusyError, DemoService } from './demo.service.js';
 import {
   assertSafeBaseUrl,
   describeProviderError,
@@ -37,6 +41,8 @@ export interface ActiveProvider {
   baseUrl: string;
   model: string;
   apiKey: string | null;
+  /** The built-in demo model (server key, daily limits). */
+  isDemo: boolean;
 }
 
 export interface ConnectionResult {
@@ -69,7 +75,10 @@ export class ProvidersService {
   // Only local development may call localhost / private networks (SSRF guard).
   private readonly allowLocal = process.env.ALLOW_LOCAL_PROVIDERS === 'true';
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly demo: DemoService,
+  ) {}
 
   async list(userId: string): Promise<ProviderView[]> {
     const rows = await this.prisma.aiProvider.findMany({
@@ -166,29 +175,66 @@ export class ProvidersService {
     });
   }
 
-  /** The provider "in use", with its key decrypted. 400 when none is set up. */
+  /**
+   * The provider "in use" with its key decrypted. Without one, the demo model
+   * (if this server has one). 400 when neither exists.
+   */
   async getActive(userId: string): Promise<ActiveProvider> {
     const row = await this.prisma.aiProvider.findFirst({
       where: { userId, isDefault: true },
       select: { name: true, baseUrl: true, model: true, apiKeyEncrypted: true },
     });
-    if (!row)
-      throw new BadRequestException(
-        'Add a model provider in Settings before running a review.',
-      );
-    return {
-      name: row.name,
-      baseUrl: row.baseUrl,
-      model: row.model,
-      apiKey: row.apiKeyEncrypted
-        ? decryptSecret(row.apiKeyEncrypted, this.key)
-        : null,
-    };
+    if (row)
+      return {
+        name: row.name,
+        baseUrl: row.baseUrl,
+        model: row.model,
+        apiKey: row.apiKeyEncrypted
+          ? decryptSecret(row.apiKeyEncrypted, this.key)
+          : null,
+        isDemo: false,
+      };
+    const demo = this.demo.config();
+    if (demo)
+      return {
+        name: demo.name,
+        baseUrl: demo.baseUrl,
+        model: demo.model,
+        apiKey: demo.apiKey,
+        isDemo: true,
+      };
+    throw new BadRequestException(
+      'Add a model provider in Settings before running a review.',
+    );
   }
 
-  /** The URL guard for other modules (reviews, chat): check again before every call. */
-  assertCallable(baseUrl: string): Promise<void> {
-    return assertSafeBaseUrl(baseUrl, this.allowLocal);
+  /**
+   * Runs one AI action (review, chat answer, insight) with the provider in use.
+   * - Own provider: the SSRF guard runs again (DNS may have changed since saving).
+   * - Demo: takes one request from today's allowance, gives it back on failure.
+   * SDK and network errors become a 502 with a readable message.
+   */
+  async useProvider<T>(
+    userId: string,
+    run: (provider: ActiveProvider) => Promise<T>,
+  ): Promise<T> {
+    const provider = await this.getActive(userId);
+    const demo = provider.isDemo ? this.demo.config() : null;
+    if (demo) {
+      // The demo URL comes from the server's own env, so it's trusted.
+      await this.demo.reserve(userId, demo);
+    } else {
+      await this.checkUrl(provider.baseUrl);
+    }
+    try {
+      return await run(provider);
+    } catch (error) {
+      if (demo) await this.demo.release(userId);
+      if (error instanceof HttpException) throw error;
+      // The demo's free tier said "too many requests": point the user to their own key.
+      if (demo && error instanceof OpenAI.RateLimitError) throw demoBusyError();
+      throw new BadGatewayException(describeProviderError(error));
+    }
   }
 
   /** Calls GET {baseUrl}/models. Never throws: the result says what went wrong. */
