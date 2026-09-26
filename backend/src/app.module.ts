@@ -7,6 +7,7 @@ import { HealthController } from './health/health.controller.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { ProjectsModule } from './projects/projects.module.js';
 import { ProvidersModule } from './providers/providers.module.js';
+import { ReviewsModule } from './reviews/reviews.module.js';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ProvidersModule } from './providers/providers.module.js';
     ProjectsModule,
     FilesModule,
     ProvidersModule,
+    ReviewsModule,
   ],
   controllers: [HealthController],
   // Global rate limit for every route (AuthGuard is registered in AuthModule).
