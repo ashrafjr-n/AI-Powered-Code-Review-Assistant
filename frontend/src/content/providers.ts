@@ -16,3 +16,7 @@ export const emptyProvidersBody =
 /** Shown in the form when a local preset is picked on a public server. */
 export const tunnelHint =
   "This runs on your computer. Paste the https address of your tunnel, ending in /v1 (for example https://my-model.trycloudflare.com/v1).";
+
+/** Review form, when the model in use looks like Ollama or LM Studio. */
+export const localContextNote =
+  "Local model: give it a bigger context, or large reviews get cut off without a warning. Ollama: set OLLAMA_CONTEXT_LENGTH=16384. LM Studio: raise the context length when you load the model.";

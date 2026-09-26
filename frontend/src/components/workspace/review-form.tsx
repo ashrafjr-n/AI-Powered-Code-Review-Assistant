@@ -8,6 +8,7 @@ import { DemoLimitPanel } from "@/components/app/demo-limit-panel";
 import { FormError } from "@/components/ui/form-error";
 import { inputClass } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
+import { localContextNote } from "@/content/providers";
 import { MODE_LABEL } from "@/lib/labels";
 import type { ReviewMode, ReviewPlan } from "@/lib/types";
 import { useElapsed, withElapsed } from "@/lib/use-elapsed";
@@ -25,6 +26,8 @@ interface ReviewFormProps {
   currentFile?: string;
   /** Readable files, for the two pickers of a diff review. */
   paths: string[];
+  /** The model in use looks like Ollama / LM Studio (small default context). */
+  localModel: boolean;
   /** How many files a whole-project review sends (null while not loaded). */
   plan: ReviewPlan | null;
 }
@@ -43,6 +46,7 @@ export function ReviewForm({
   projectId,
   currentFile,
   paths,
+  localModel,
   plan,
 }: ReviewFormProps) {
   const [state, formAction, pending] = useActionState(
@@ -206,6 +210,11 @@ export function ReviewForm({
       </fieldset>
 
       <div className="space-y-2">
+        {localModel && (
+          <p className="text-xs leading-relaxed text-silver-500">
+            {localContextNote}
+          </p>
+        )}
         <Button type="submit" disabled={pending} className="w-full">
           {pending ? withElapsed("Reviewing…", seconds) : "Run review"}
         </Button>

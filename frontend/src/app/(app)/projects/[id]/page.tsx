@@ -29,6 +29,8 @@ import { listChatSessions } from "@/lib/api/chat";
 import { getFile, listFiles } from "@/lib/api/files";
 import { listInsights } from "@/lib/api/insights";
 import { getProject } from "@/lib/api/projects";
+import { getActiveProvider } from "@/lib/api/providers";
+import { isLikelyLocalModel } from "@/lib/providers";
 import { getReviewPlan, listReviews } from "@/lib/api/reviews";
 
 export async function generateMetadata({
@@ -67,14 +69,18 @@ export default async function WorkspacePage({
     files[0];
   const line = Number(firstParam(query.line)) || undefined;
 
-  const [file, reviews, sessions, insights, plan] = await Promise.all([
-    // Sensitive files have no content to load (the backend refuses anyway).
-    selected.sensitive ? null : getFile(id, selected.path),
-    listReviews({ projectId: id }),
-    listChatSessions(id),
-    listInsights(id),
-    tab === "review" ? getReviewPlan(id) : null,
-  ]);
+  const [file, reviews, sessions, insights, plan, provider] = await Promise.all(
+    [
+      // Sensitive files have no content to load (the backend refuses anyway).
+      selected.sensitive ? null : getFile(id, selected.path),
+      listReviews({ projectId: id }),
+      listChatSessions(id),
+      listInsights(id),
+      tab === "review" ? getReviewPlan(id) : null,
+      // Cached: the layout already asked for it (provider pill).
+      getActiveProvider(),
+    ],
+  );
   // Only possible if the files were replaced between the two requests.
   if (!file && !selected.sensitive) notFound();
   // A generated document takes the wide middle pane while the Insights tab is open.
@@ -159,6 +165,7 @@ export default async function WorkspacePage({
               <ReviewPanel
                 projectId={id}
                 currentFile={file?.path}
+                localModel={provider ? isLikelyLocalModel(provider) : false}
                 paths={files
                   .filter((entry) => !entry.sensitive)
                   .map((entry) => entry.path)}

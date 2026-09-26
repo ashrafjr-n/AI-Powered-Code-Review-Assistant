@@ -11,6 +11,8 @@ interface ReviewPanelProps {
   currentFile?: string;
   /** Readable file paths (diff review pickers). */
   paths: string[];
+  /** The model in use looks local (context note in the form). */
+  localModel: boolean;
   reviews: Review[];
   plan: ReviewPlan | null;
 }
@@ -19,6 +21,7 @@ export function ReviewPanel({
   projectId,
   currentFile,
   paths,
+  localModel,
   reviews,
   plan,
 }: ReviewPanelProps) {
@@ -28,6 +31,7 @@ export function ReviewPanel({
         projectId={projectId}
         currentFile={currentFile}
         paths={paths}
+        localModel={localModel}
         plan={plan}
       />
       <section aria-labelledby="recent-reviews" className="space-y-3">
