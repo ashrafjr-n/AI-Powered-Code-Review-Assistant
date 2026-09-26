@@ -96,17 +96,26 @@ export class ReviewsService {
           ? { projectId }
           : { projectId, path: { in: dto.filePaths } },
       orderBy: { path: 'asc' },
-      select: { path: true, content: true },
+      select: { path: true, content: true, sensitive: true },
     });
-    if (files.length === 0)
-      throw new BadRequestException('None of these files are in the project.');
+    // Sensitive files (env, keys…) are never sent: only their paths, as a hint.
+    const readable = files.filter((file) => !file.sensitive);
+    const hiddenPaths = files
+      .filter((file) => file.sensitive)
+      .map((file) => file.path);
+    if (readable.length === 0)
+      throw new BadRequestException(
+        files.length
+          ? 'These files are hidden for privacy (they usually hold secrets), so they are not reviewed.'
+          : 'None of these files are in the project.',
+      );
 
-    const { included, skipped } = pickFiles(files);
+    const { included, skipped } = pickFiles(readable);
     const { provider, output } = await this.providers.useProvider(
       userId,
       async (provider) => ({
         provider,
-        output: await this.ask(provider, dto.mode, included),
+        output: await this.ask(provider, dto.mode, included, hiddenPaths),
       }),
     );
     const summary = skipped
@@ -177,6 +186,7 @@ export class ReviewsService {
     provider: ActiveProvider,
     mode: ReviewMode,
     files: SourceFile[],
+    hiddenPaths: string[],
   ): Promise<ReviewOutput> {
     const client = providerClient(
       provider.baseUrl,
@@ -186,7 +196,7 @@ export class ReviewsService {
     const messages: {
       role: 'system' | 'user' | 'assistant';
       content: string;
-    }[] = buildReviewMessages(mode, files);
+    }[] = buildReviewMessages(mode, files, hiddenPaths);
     const deadline = Date.now() + REVIEW_TIMEOUT_MS;
 
     for (let attempt = 1; ; attempt++) {

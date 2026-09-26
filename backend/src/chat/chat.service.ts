@@ -97,17 +97,19 @@ export class ChatService {
     const files = await this.prisma.file.findMany({
       where: { projectId },
       orderBy: { path: 'asc' },
-      select: { path: true, content: true },
+      select: { path: true, content: true, sensitive: true },
     });
+    // Sensitive files (env, keys…) keep their path in the file list, never their content.
+    const readable = files.filter((file) => !file.sensitive);
     if (files.length === 0)
       throw new BadRequestException('Upload the project code first.');
 
-    const sourcePaths = rankFiles(dto.question, files);
+    const sourcePaths = rankFiles(dto.question, readable);
     const answer = await this.callModel(userId, {
       projectName: project.name,
       allPaths: files.map((file) => file.path),
       sources: sourcePaths.map((path) =>
-        files.find((file) => file.path === path)!,
+        readable.find((file) => file.path === path)!,
       ),
       history: (session?.messages ?? []).reverse(),
       question: dto.question,

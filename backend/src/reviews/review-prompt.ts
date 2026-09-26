@@ -60,6 +60,8 @@ function numbered(content: string): string {
 export function buildReviewMessages(
   mode: ReviewMode,
   files: SourceFile[],
+  /** Sensitive files in scope: only their paths are shared, never their content. */
+  hiddenPaths: string[] = [],
 ): { role: 'system' | 'user'; content: string }[] {
   const lens = LENS[mode];
   const system = [
@@ -71,9 +73,13 @@ export function buildReviewMessages(
     '{"summary": "2-3 sentences about the code and the main risks", "issues": [{"title": "short title", "description": "what is wrong, why it matters, how to fix it", "severity": "CRITICAL|HIGH|MEDIUM|LOW", "filePath": "path exactly as given", "line": 12}], "recommendations": ["short actionable advice"]}',
     'Use the line numbers shown at the left of each line. If there are no problems, return an empty "issues" array.',
   ].join('\n');
-  const user = files
-    .map((file) => `=== FILE: ${file.path} ===\n${numbered(file.content)}`)
-    .join('\n\n');
+  const hidden = hiddenPaths.length
+    ? `\n\n=== NOT SENT (privacy) ===\nThese files exist in the project but usually hold secrets (env files, keys, credentials), so their content is never shared: ${hiddenPaths.join(', ')}. Committing such files is a security risk: report it when relevant, pointing at the path without a line.`
+    : '';
+  const user =
+    files
+      .map((file) => `=== FILE: ${file.path} ===\n${numbered(file.content)}`)
+      .join('\n\n') + hidden;
   return [
     { role: 'system', content: system },
     { role: 'user', content: user },

@@ -60,11 +60,13 @@ export class InsightsService {
     const files = await this.prisma.file.findMany({
       where: { projectId },
       orderBy: { path: 'asc' },
-      select: { path: true, content: true },
+      select: { path: true, content: true, sensitive: true },
     });
+    // Sensitive files (env, keys…) keep their path in the file list, never their content.
+    const readable = files.filter((file) => !file.sensitive);
     if (files.length === 0)
       throw new BadRequestException('Upload the project code first.');
-    const picked = pickInsightFiles(kind, files);
+    const picked = pickInsightFiles(kind, readable);
 
     // SDK errors bubble up to useProvider(), which turns them into a 502.
     const { content, provider } = await this.providers.useProvider(
