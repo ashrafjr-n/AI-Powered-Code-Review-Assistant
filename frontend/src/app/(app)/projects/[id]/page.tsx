@@ -140,7 +140,7 @@ export default async function WorkspacePage({
             <CodeViewer
               file={file}
               highlightLine={file.path === requested ? line : undefined}
-              markers={issueMarkers(reviews, file.path)}
+              markers={issueMarkers(reviews, file.path, project.codeVersion)}
             />
           ) : (
             <HiddenFileNotice path={selected.path} />

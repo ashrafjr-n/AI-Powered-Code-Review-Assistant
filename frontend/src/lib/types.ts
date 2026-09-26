@@ -12,6 +12,8 @@ export interface ProjectSummary {
   description: string;
   createdAt: string;
   fileCount: number;
+  /** +1 on every upload; reviews/docs with a lower version describe older code. */
+  codeVersion: number;
   /** null before the first upload. */
   uploadStats: UploadStats | null;
   /** Latest review: highest severity (null = clean) + issues per severity; undefined = never reviewed. */
@@ -74,6 +76,8 @@ export interface Review {
   filePaths: string[];
   /** DIFF only: the unified diff that was reviewed (kept after re-uploads). */
   diff: string | null;
+  /** The project's code version when the files were read. */
+  codeVersion: number;
   summary: string;
   issues: ReviewIssue[];
   recommendations: string[];
@@ -118,6 +122,8 @@ export interface Insight {
   content: string;
   /** The files the model read (big projects don't fit completely). */
   filePaths: string[];
+  /** The project's code version when the files were read. */
+  codeVersion: number;
   /** Snapshot of the model that wrote it (like reviews). */
   providerName: string;
   model: string;

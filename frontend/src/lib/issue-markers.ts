@@ -8,17 +8,13 @@ export interface LineMarker {
   titles: string[];
 }
 
-/**
- * Gutter dots for one file: the issues of the NEWEST review that looked at this file
- * (older reviews may point at lines that changed since). `reviews` = newest first.
- */
-export function issueMarkers(
-  reviews: Review[],
+/** Dots for one file from a list of issues: the worst severity per line wins. */
+export function markersFor(
+  issues: Review["issues"],
   path: string,
 ): Map<number, LineMarker> {
   const markers = new Map<number, LineMarker>();
-  const latest = reviews.find((review) => review.filePaths.includes(path));
-  for (const issue of latest?.issues ?? []) {
+  for (const issue of issues) {
     if (issue.filePath !== path || !issue.line) continue;
     const current = markers.get(issue.line);
     const worse =
@@ -31,4 +27,24 @@ export function issueMarkers(
     });
   }
   return markers;
+}
+
+/**
+ * Gutter dots for one file in the code viewer: the issues of the NEWEST review that
+ * read the whole file in the current code. Skipped: reviews of older uploads (their
+ * lines may have moved) and diff reviews (they only looked at changed lines, and the
+ * "before" file has no issues). `reviews` = newest first.
+ */
+export function issueMarkers(
+  reviews: Review[],
+  path: string,
+  codeVersion: number,
+): Map<number, LineMarker> {
+  const latest = reviews.find(
+    (review) =>
+      review.scope !== "DIFF" &&
+      review.codeVersion === codeVersion &&
+      review.filePaths.includes(path),
+  );
+  return markersFor(latest?.issues ?? [], path);
 }
