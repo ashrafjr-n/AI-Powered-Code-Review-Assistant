@@ -1,4 +1,5 @@
-// Upload rules shared by the drop zone (UX) and the server (security).
+// Upload check in the drop zone (UX only). The backend enforces the same limit
+// (backend/src/files/unzip.ts MAX_ZIP_BYTES).
 export const MAX_ZIP_BYTES = 10 * 1024 * 1024;
 
 export function zipProblem(name: string, size: number): string | null {
