@@ -40,7 +40,7 @@ export function ReviewReport({ review }: ReviewReportProps) {
             />
           )}
         </h1>
-        <SeverityBar issues={review.issues} />
+        <SeverityBar issues={review.issues} variant="count" />
         <p className="max-w-3xl text-lg leading-relaxed text-silver-300">
           {review.summary}
         </p>

@@ -27,10 +27,28 @@ const segmentClass: Record<Surface, Record<Severity, string>> = {
 interface SeverityBarProps {
   issues: ReviewIssue[];
   surface?: Surface;
+  /**
+   * "share" = one bar split by proportion (the landing sample).
+   * "count" = one block per issue, so 1 critical issue is one red block,
+   * not a full red bar that looks like 50 of them.
+   */
+  variant?: "share" | "count";
 }
 
-export function SeverityBar({ issues, surface = "ink" }: SeverityBarProps) {
+// Enough blocks to show a real review; more are summarised as "+N".
+const MAX_BLOCKS = 40;
+
+export function SeverityBar({
+  issues,
+  surface = "ink",
+  variant = "share",
+}: SeverityBarProps) {
   const counts = countBySeverity(issues);
+  // Issues come sorted worst first, so the blocks read left (worst) to right.
+  const blocks = SEVERITY_ORDER.flatMap((severity) =>
+    Array.from({ length: counts[severity] }, () => severity),
+  );
+  const hidden = Math.max(0, blocks.length - MAX_BLOCKS);
   const segments = SEVERITY_ORDER.filter(
     (severity) => counts[severity] > 0,
   ).map((severity) => ({
@@ -40,21 +58,43 @@ export function SeverityBar({ issues, surface = "ink" }: SeverityBarProps) {
 
   return (
     <div>
-      <div
-        className={cn(
-          "flex h-2 gap-0.5 overflow-hidden rounded-sm",
-          segments.length === 0 &&
-            (surface === "ink" ? "bg-line" : "bg-ink-950/10"),
-        )}
-      >
-        {segments.map((segment) => (
-          <span
-            key={segment.severity}
-            className={segmentClass[surface][segment.severity]}
-            style={{ width: `${segment.percent}%` }}
-          />
-        ))}
-      </div>
+      {variant === "count" ? (
+        <div className="flex flex-wrap items-center gap-1" aria-hidden>
+          {blocks.length === 0 && (
+            <span className="h-2 w-5 rounded-sm bg-line" />
+          )}
+          {blocks.slice(0, MAX_BLOCKS).map((severity, index) => (
+            <span
+              key={index}
+              className={cn(
+                "h-2 w-5 rounded-sm",
+                segmentClass[surface][severity],
+              )}
+            />
+          ))}
+          {hidden > 0 && (
+            <span className="ml-1 font-mono text-xs text-silver-500">
+              +{hidden}
+            </span>
+          )}
+        </div>
+      ) : (
+        <div
+          className={cn(
+            "flex h-2 gap-0.5 overflow-hidden rounded-sm",
+            segments.length === 0 &&
+              (surface === "ink" ? "bg-line" : "bg-ink-950/10"),
+          )}
+        >
+          {segments.map((segment) => (
+            <span
+              key={segment.severity}
+              className={segmentClass[surface][segment.severity]}
+              style={{ width: `${segment.percent}%` }}
+            />
+          ))}
+        </div>
+      )}
       <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-1 font-mono text-xs text-silver-500">
         {SEVERITY_ORDER.map((severity) => (
           <li key={severity}>
