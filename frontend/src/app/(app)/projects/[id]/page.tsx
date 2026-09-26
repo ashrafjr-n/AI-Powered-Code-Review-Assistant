@@ -130,6 +130,7 @@ export default async function WorkspacePage({
           {openDoc ? (
             <InsightDocument
               insight={openDoc}
+              totalFiles={project.fileCount}
               closeHref={workspaceHref(id, {
                 tab: "insights",
                 file: selected.path,

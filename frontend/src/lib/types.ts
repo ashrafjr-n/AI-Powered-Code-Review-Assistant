@@ -116,6 +116,8 @@ export type InsightKind = "ARCHITECTURE" | "README" | "SETUP" | "API_DOCS";
 export interface Insight {
   kind: InsightKind;
   content: string;
+  /** The files the model read (big projects don't fit completely). */
+  filePaths: string[];
   /** Snapshot of the model that wrote it (like reviews). */
   providerName: string;
   model: string;
