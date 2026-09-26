@@ -37,7 +37,7 @@ describe('buildInsightMessages', () => {
       files: [{ path: 'a.ts', content: 'app.get("/x")' }],
     });
     expect(system.content).toContain('API documentation');
-    expect(system.content).toContain('not found in the code');
+    expect(system.content).toContain('not in the files I read');
     expect(user.content).toContain('b.ts');
     expect(user.content).toContain('=== FILE: a.ts ===');
   });
