@@ -7,13 +7,8 @@ import { ApiError } from "@/lib/api/client";
 import { generateInsight } from "@/lib/api/insights";
 import { runReview } from "@/lib/api/reviews";
 import { MODE_LABEL } from "@/lib/labels";
-import type {
-  DemoNotice,
-  InsightKind,
-  ReviewMode,
-  ReviewScope,
-} from "@/lib/types";
-import { workspaceHref } from "@/lib/workspace-url";
+import type { DemoNotice, ReviewMode, ReviewScope } from "@/lib/types";
+import { INSIGHT_KINDS, workspaceHref } from "@/lib/workspace-url";
 
 export interface ActionState {
   error?: string;
@@ -121,13 +116,6 @@ export async function sendChatAction(
 }
 
 // ── Insights (bonus: architecture + documentation) ─────────────────────
-const INSIGHT_KINDS: InsightKind[] = [
-  "ARCHITECTURE",
-  "README",
-  "SETUP",
-  "API_DOCS",
-];
-
 export async function generateInsightAction(
   projectId: string,
   _previous: ActionState,
@@ -151,5 +139,7 @@ export async function generateInsightAction(
   }
   // Layout too: the provider pill shows how many demo requests are left.
   revalidatePath("/", "layout");
-  return {};
+  // Open the new document in the middle pane; keep the selected file for "Back to code".
+  const file = String(formData.get("file") ?? "") || undefined;
+  redirect(workspaceHref(projectId, { tab: "insights", doc: kind, file }));
 }
