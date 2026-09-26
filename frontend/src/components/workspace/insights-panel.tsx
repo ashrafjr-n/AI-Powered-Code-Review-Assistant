@@ -10,6 +10,8 @@ import { InsightForm } from "./insight-form";
 interface InsightsPanelProps {
   projectId: string;
   insights: Insight[];
+  /** The project's current code version: older documents are marked outdated. */
+  codeVersion: number;
   /** The document open in the middle pane, if any. */
   openDoc?: InsightKind;
   /** The selected file, kept in links so "Back to code" returns to it. */
@@ -21,6 +23,7 @@ interface InsightsPanelProps {
 export function InsightsPanel({
   projectId,
   insights,
+  codeVersion,
   openDoc,
   file,
 }: InsightsPanelProps) {
@@ -78,6 +81,12 @@ export function InsightsPanel({
                   {insight
                     ? `Generated ${formatDateTime(insight.createdAt)} · ${insight.model}`
                     : "Not generated yet"}
+                  {insight && insight.codeVersion !== codeVersion && (
+                    <span className="text-paper">
+                      {" "}
+                      · Outdated: code changed
+                    </span>
+                  )}
                 </p>
               </div>
               <InsightForm

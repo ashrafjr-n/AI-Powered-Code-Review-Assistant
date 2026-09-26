@@ -131,6 +131,7 @@ export default async function WorkspacePage({
             <InsightDocument
               insight={openDoc}
               totalFiles={project.fileCount}
+              outdated={openDoc.codeVersion !== project.codeVersion}
               closeHref={workspaceHref(id, {
                 tab: "insights",
                 file: selected.path,
@@ -177,6 +178,7 @@ export default async function WorkspacePage({
               <InsightsPanel
                 projectId={id}
                 insights={insights}
+                codeVersion={project.codeVersion}
                 openDoc={openDoc?.kind}
                 file={selected.path}
               />

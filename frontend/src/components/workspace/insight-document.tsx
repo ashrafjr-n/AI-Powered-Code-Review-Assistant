@@ -11,6 +11,8 @@ interface InsightDocumentProps {
   insight: Insight;
   /** Readable files in the project, for "Based on N of M files". */
   totalFiles: number;
+  /** New code was uploaded after this document was generated. */
+  outdated: boolean;
   /** Back to the code viewer. */
   closeHref: string;
 }
@@ -21,6 +23,7 @@ interface InsightDocumentProps {
 export function InsightDocument({
   insight,
   totalFiles,
+  outdated,
   closeHref,
 }: InsightDocumentProps) {
   const title = insightTitle[insight.kind];
@@ -46,6 +49,12 @@ export function InsightDocument({
         </span>
       </header>
       <div className="min-h-0 flex-1 overflow-auto px-6 py-6 sm:px-10">
+        {outdated && (
+          <p className="mb-4 max-w-3xl text-sm text-silver-400">
+            New code was uploaded after this document was written. Regenerate it
+            in the panel to describe the current code.
+          </p>
+        )}
         {/* Honest about the input: big projects don't fit, so the model read only some files. */}
         <details className="details-smooth mb-6 max-w-3xl font-mono text-xs text-silver-500">
           <summary className="cursor-pointer hover:text-paper">
