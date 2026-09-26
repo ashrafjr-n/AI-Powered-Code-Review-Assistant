@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { History, SearchX } from "lucide-react";
 import { ReviewFilters } from "@/components/reviews/review-filters";
-import { ReviewList } from "@/components/reviews/review-list";
+import { ProjectReviewSection } from "@/components/reviews/project-review-section";
 import { buttonClass } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { MODE_LABEL } from "@/lib/labels";
+import { groupReviewsByProject } from "@/lib/review-groups";
 import { SEVERITY_ORDER } from "@/lib/severity";
 import type { ReviewMode } from "@/lib/types";
 import { firstParam } from "@/lib/workspace-url";
@@ -31,6 +32,7 @@ export default async function ReviewsPage({
   )?.id;
   const filtered = Boolean(q || mode || severity || projectId);
   const reviews = await listReviews({ q, mode, severity, projectId });
+  const groups = groupReviewsByProject(reviews);
 
   return (
     <div className="space-y-6">
@@ -47,6 +49,7 @@ export default async function ReviewsPage({
       />
       <p aria-live="polite" className="font-mono text-xs text-silver-500">
         {reviews.length} {reviews.length === 1 ? "review" : "reviews"}
+        {groups.length > 1 && ` in ${groups.length} projects`}
         {filtered && (
           <>
             {" · "}
@@ -60,7 +63,15 @@ export default async function ReviewsPage({
         )}
       </p>
       {reviews.length > 0 ? (
-        <ReviewList reviews={reviews} />
+        <div className="space-y-10">
+          {groups.map((group) => (
+            <ProjectReviewSection
+              key={group.projectId}
+              group={group}
+              filteredToProject={Boolean(projectId)}
+            />
+          ))}
+        </div>
       ) : filtered ? (
         <EmptyState
           icon={SearchX}

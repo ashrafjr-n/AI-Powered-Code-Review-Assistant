@@ -7,9 +7,11 @@ import type { ReviewListItem } from "@/lib/types";
 
 interface ReviewListProps {
   reviews: ReviewListItem[];
+  /** false inside a project group, where the name is already the group's title. */
+  showProject?: boolean;
 }
 
-export function ReviewList({ reviews }: ReviewListProps) {
+export function ReviewList({ reviews, showProject = true }: ReviewListProps) {
   return (
     <ul className="divide-y divide-line rounded-md border border-line bg-ink-900">
       {reviews.map((review) => {
@@ -31,7 +33,8 @@ export function ReviewList({ reviews }: ReviewListProps) {
               </span>
               <span className="min-w-0">
                 <span className="block text-sm text-paper">
-                  {MODE_LABEL[review.mode]} · {review.projectName}
+                  {MODE_LABEL[review.mode]}
+                  {showProject && ` · ${review.projectName}`}
                 </span>
                 <span className="mt-1 block truncate text-sm text-silver-400">
                   {review.summary}
