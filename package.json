@@ -1,0 +1,12 @@
+{
+  "name": "ai-code-review-assistant",
+  "private": true,
+  "description": "Root scripts only. Each app keeps its own package.json and commands.",
+  "scripts": {
+    "db": "docker compose up -d --wait",
+    "dev": "npm run db && concurrently --names backend,frontend --prefix-colors blue,magenta --kill-others-on-fail \"npm run start:dev --prefix backend\" \"npm run dev --prefix frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}
