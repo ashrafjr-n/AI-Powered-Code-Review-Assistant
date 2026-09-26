@@ -24,9 +24,22 @@ function demoNotice(error: ApiError): DemoNotice | undefined {
   return undefined;
 }
 
-// Server Actions are public endpoints: always confirm (via the backend) that the project
-// belongs to the signed-in user before touching it.
-const NOT_YOURS: ActionState = { error: "Project not found." };
+/**
+ * Expected backend errors become form state; anything else goes to the error page.
+ * 400 (no provider, bad files), 404 (not yours), 429 (limit), 502 (model failed).
+ * Server Actions are public endpoints: the backend confirms the project belongs to the
+ * signed-in user, and another user's project is simply "not found".
+ */
+function failure(error: unknown): ActionState {
+  if (!(error instanceof ApiError)) throw error;
+  const demo = demoNotice(error);
+  if (demo) return { demo };
+  if (error.status < 500 || error.status === 502)
+    return {
+      error: error.status === 404 ? "Project not found." : error.message,
+    };
+  throw error;
+}
 
 // ── Review ─────────────────────────────────────────────────────────────
 const MODES = Object.keys(MODE_LABEL) as ReviewMode[];
@@ -59,15 +72,7 @@ export async function runReviewAction(
   try {
     ({ id: reviewId } = await runReview(projectId, { mode, scope, filePaths }));
   } catch (error) {
-    const demo = error instanceof ApiError ? demoNotice(error) : undefined;
-    if (demo) return { demo };
-    // 400 (no provider, bad files), 404 (not yours), 429 (limit), 502 (model failed).
-    if (
-      error instanceof ApiError &&
-      (error.status < 500 || error.status === 502)
-    )
-      return { error: error.status === 404 ? NOT_YOURS.error : error.message };
-    throw error;
+    return failure(error);
   }
   revalidatePath("/", "layout");
   redirect(`/projects/${projectId}/reviews/${reviewId}`);
@@ -95,18 +100,7 @@ export async function sendChatAction(
   try {
     id = await askQuestion(projectId, sessionId, question);
   } catch (error) {
-    const demo = error instanceof ApiError ? demoNotice(error) : undefined;
-    if (demo) return { demo, question };
-    // 400 (no files / no provider), 404 (not yours), 429 (limit), 502 (model failed).
-    if (
-      error instanceof ApiError &&
-      (error.status < 500 || error.status === 502)
-    )
-      return {
-        error: error.status === 404 ? NOT_YOURS.error : error.message,
-        question,
-      };
-    throw error;
+    return { ...failure(error), question };
   }
   // Layout too: the provider pill shows how many demo requests are left.
   revalidatePath("/", "layout");
@@ -128,14 +122,7 @@ export async function generateInsightAction(
   try {
     await generateInsight(projectId, kind);
   } catch (error) {
-    const demo = error instanceof ApiError ? demoNotice(error) : undefined;
-    if (demo) return { demo };
-    if (
-      error instanceof ApiError &&
-      (error.status < 500 || error.status === 502)
-    )
-      return { error: error.status === 404 ? NOT_YOURS.error : error.message };
-    throw error;
+    return failure(error);
   }
   // Layout too: the provider pill shows how many demo requests are left.
   revalidatePath("/", "layout");
