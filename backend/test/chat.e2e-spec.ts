@@ -159,6 +159,27 @@ describe('Chat (e2e)', () => {
       },
     ]);
 
+    // The open file is always sent ("explain this file" has no useful keywords).
+    const open = await owner
+      .post(`${base}/messages`)
+      .send({ question: 'Explain this file', currentFile: 'src/auth/login.ts' })
+      .expect(201);
+    const last = () => sent[sent.length - 1][0].content;
+    expect(last()).toContain('=== FILE: src/auth/login.ts ===');
+    expect(last()).toContain('"src/auth/login.ts" open');
+    // A follow-up without keywords reuses the previous answer's files.
+    await owner
+      .post(`${base}/messages`)
+      .send({ sessionId: open.body.sessionId, question: 'and who calls it?' })
+      .expect(201);
+    expect(last()).toContain('=== FILE: src/auth/login.ts ===');
+    // A path that isn't a readable project file is ignored.
+    await owner
+      .post(`${base}/messages`)
+      .send({ question: 'Explain this file', currentFile: '../../etc/passwd' })
+      .expect(201);
+    expect(last()).toContain('No file matched the question');
+
     // Validation and ownership.
     await owner.post(`${base}/messages`).send({ question: '   ' }).expect(400);
     await owner
