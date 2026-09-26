@@ -1,4 +1,5 @@
 // MOCK (frontend-only phase). Replaced by the insights API (architecture + docs) in C7.
+import { listFiles } from "@/lib/api/files";
 import type { Insight, InsightKind } from "@/lib/types";
 import { db, wait } from "./db";
 
@@ -75,7 +76,7 @@ export async function generateInsight(
   kind: InsightKind,
 ): Promise<void> {
   await wait(1200);
-  const paths = (db.files.get(projectId) ?? []).map((file) => file.path);
+  const paths = (await listFiles(projectId)).map((file) => file.path);
   const insight: Insight = {
     kind,
     content: draft(kind, projectName, paths),

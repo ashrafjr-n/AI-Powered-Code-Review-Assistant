@@ -1,18 +1,10 @@
 // MOCK (frontend-only phase). One in-memory "database" for all mock modules.
 // It lives in the server process and resets when the dev server restarts.
 // Replaced piece by piece by the NestJS API in C1–C7, then this folder is deleted.
-import type {
-  AiProvider,
-  ChatSession,
-  Insight,
-  ProjectFile,
-  Review,
-} from "@/lib/types";
+import type { AiProvider, ChatSession, Insight, Review } from "@/lib/types";
 import { crmFiles, lineOf, portfolioFiles } from "./sample-code";
 
 export const db = {
-  files: new Map<string, ProjectFile[]>(),
-
   reviews: [] as Review[],
 
   // Issue templates the mock review engine picks from (matched by lens + file path).

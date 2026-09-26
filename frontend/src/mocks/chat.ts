@@ -1,4 +1,5 @@
 // MOCK (frontend-only phase). Replaced by the chat API (keyword retrieval + the model) in C6.
+import { listFiles } from "@/lib/api/files";
 import type { ChatMessage, ChatSession } from "@/lib/types";
 import { db, wait } from "./db";
 
@@ -25,12 +26,15 @@ function message(
 }
 
 // Simple keyword retrieval: score each file by how often the question's words appear
-// in its path and content, keep the top 3. The real version does this on the backend.
-function relevantFiles(projectId: string, question: string): string[] {
+// in its path, keep the top 3. The real version (C6) also searches file content.
+async function relevantFiles(
+  projectId: string,
+  question: string,
+): Promise<string[]> {
   const words = question.toLowerCase().match(/[a-z_]{4,}/g) ?? [];
-  return (db.files.get(projectId) ?? [])
+  return (await listFiles(projectId))
     .map((file) => {
-      const text = `${file.path} ${file.content}`.toLowerCase();
+      const text = file.path.toLowerCase();
       return {
         path: file.path,
         score: words.reduce(
@@ -65,7 +69,7 @@ export async function sendChatMessage(
     };
     db.chats.push(session);
   }
-  const sources = relevantFiles(projectId, question);
+  const sources = await relevantFiles(projectId, question);
   const answer = sources.length
     ? `The files most related to your question are ${sources.join(", ")}. (Sample answer: once a model is connected, it answers using these files as context.)`
     : "I couldn't find files that match your question. Try naming a feature, a function or a file. (Sample answer: once a model is connected, it answers here.)";
