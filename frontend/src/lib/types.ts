@@ -16,9 +16,13 @@ export interface ProjectSummary {
   lastReview?: { severity: Severity | null; createdAt: string };
 }
 
-export interface ProjectFile {
+/** A file in the tree: the list endpoint never sends content. */
+export interface FileEntry {
   path: string;
   size: number;
+}
+
+export interface ProjectFile extends FileEntry {
   content: string;
 }
 
