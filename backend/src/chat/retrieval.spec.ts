@@ -1,5 +1,5 @@
 import { buildChatMessages } from './chat-prompt.js';
-import { keywords, rankFiles } from './retrieval.js';
+import { keywords, pickSources, rankFiles } from './retrieval.js';
 
 const files = [
   {
@@ -66,5 +66,51 @@ describe('buildChatMessages', () => {
     expect(messages[0].content).toContain('=== FILE: a.ts ===');
     expect(messages[0].content).toContain('b.ts');
     expect(messages[3].content).toBe('second?');
+  });
+});
+
+describe('pickSources', () => {
+  const files = [
+    { path: 'src/db/pool.ts', content: 'connect database' },
+    { path: 'src/auth/login.ts', content: 'login user' },
+    { path: 'src/app.ts', content: 'app' },
+  ];
+
+  it('puts the open file first, so "explain this file" has code', () => {
+    expect(
+      pickSources({
+        question: 'Explain this file',
+        files,
+        openFile: 'src/app.ts',
+      }),
+    ).toEqual(['src/app.ts']);
+    expect(
+      pickSources({
+        question: 'Where is the login?',
+        files,
+        openFile: 'src/app.ts',
+      }),
+    ).toEqual(['src/app.ts', 'src/auth/login.ts']);
+  });
+
+  it("reuses the previous answer's files only when no word matched", () => {
+    const previous = ['src/auth/login.ts'];
+    expect(
+      pickSources({ question: 'and where is it called?', files, previous }),
+    ).toEqual(previous);
+    expect(pickSources({ question: 'the database?', files, previous })).toEqual(
+      ['src/db/pool.ts'],
+    );
+  });
+
+  it('never returns files that are not readable in this project', () => {
+    expect(
+      pickSources({
+        question: 'x',
+        files,
+        openFile: '.env',
+        previous: ['gone.ts'],
+      }),
+    ).toEqual([]);
   });
 });

@@ -59,3 +59,25 @@ export function rankFiles(
     .slice(0, limit)
     .map((file) => file.path);
 }
+
+/**
+ * The files sent with a question, best first (at most TOP_FILES):
+ * 1. the file open in the workspace, so "explain this file" works;
+ * 2. keyword matches;
+ * 3. only if no word matched: the files of the previous answer, so follow-ups like
+ *    "and where is it called?" keep their context.
+ * Only readable files of this project are returned.
+ */
+export function pickSources(input: {
+  question: string;
+  files: { path: string; content: string }[];
+  openFile?: string;
+  previous?: string[];
+}): string[] {
+  const readable = new Set(input.files.map((file) => file.path));
+  const ranked = rankFiles(input.question, input.files);
+  const fallback = ranked.length === 0 ? (input.previous ?? []) : [];
+  return [...new Set([input.openFile, ...ranked, ...fallback])]
+    .filter((path): path is string => !!path && readable.has(path))
+    .slice(0, TOP_FILES);
+}
