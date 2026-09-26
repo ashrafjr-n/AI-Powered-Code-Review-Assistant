@@ -5,7 +5,6 @@ import type { DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import { FileArchive, UploadCloud } from "lucide-react";
 import { FormError } from "@/components/ui/form-error";
-import { uploadRules } from "@/content/upload";
 import { errorMessage } from "@/lib/api/error-message";
 import { cn } from "@/lib/cn";
 import { formatBytes } from "@/lib/format";
@@ -13,9 +12,11 @@ import { MAX_PICKED_ZIP_BYTES, slimZip, zipProblem } from "@/lib/upload";
 
 interface UploadDropzoneProps {
   projectId: string;
+  /** Called after a successful upload (the "Replace code" dialog closes itself). */
+  onUploaded?: () => void;
 }
 
-export function UploadDropzone({ projectId }: UploadDropzoneProps) {
+export function UploadDropzone({ projectId, onUploaded }: UploadDropzoneProps) {
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
@@ -57,6 +58,7 @@ export function UploadDropzone({ projectId }: UploadDropzoneProps) {
       } else {
         // Re-render the Server Component page, which now finds the files.
         router.refresh();
+        onUploaded?.();
       }
     });
   }
@@ -118,18 +120,6 @@ export function UploadDropzone({ projectId }: UploadDropzoneProps) {
           }}
         />
       </label>
-      <dl className="grid gap-x-8 gap-y-4 rounded-md border border-line p-5 text-sm sm:grid-cols-2">
-        {uploadRules.map((rule) => (
-          <div key={rule.title}>
-            <dt className="font-mono text-[11px] tracking-label text-silver-500 uppercase">
-              {rule.title}
-            </dt>
-            <dd className="mt-1 leading-relaxed text-silver-400">
-              {rule.body}
-            </dd>
-          </div>
-        ))}
-      </dl>
     </div>
   );
 }

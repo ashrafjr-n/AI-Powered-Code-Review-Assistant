@@ -18,3 +18,11 @@ export const uploadRules = [
     body: "API keys, tokens and passwords written inside code are replaced with ‹redacted› before saving.",
   },
 ];
+
+// "Replace code" in the workspace: a new ZIP replaces every stored file.
+export const replaceCodeCopy = {
+  button: "Replace",
+  title: "Upload new code",
+  description: (fileCount: number) =>
+    `The new ZIP replaces all ${fileCount} files. Past reviews, chats and docs stay.`,
+};

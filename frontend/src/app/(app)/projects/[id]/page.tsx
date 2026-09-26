@@ -10,7 +10,9 @@ import { InsightsPanel } from "@/components/workspace/insights-panel";
 import { PanelTabs } from "@/components/workspace/panel-tabs";
 import { REVIEW_FORM_ID } from "@/components/workspace/review-form";
 import { ReviewPanel } from "@/components/workspace/review-panel";
+import { ReplaceCodeButton } from "@/components/workspace/replace-code-button";
 import { UploadDropzone } from "@/components/workspace/upload-dropzone";
+import { UploadRules } from "@/components/workspace/upload-rules";
 import { UploadSummary } from "@/components/workspace/upload-summary";
 import { buildFileTree } from "@/lib/file-tree";
 import { issueMarkers } from "@/lib/issue-markers";
@@ -45,8 +47,9 @@ export default async function WorkspacePage({
   const files = await listFiles(id);
   if (files.length === 0) {
     return (
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-3xl space-y-4">
         <UploadDropzone projectId={id} />
+        <UploadRules />
       </div>
     );
   }
@@ -103,12 +106,16 @@ export default async function WorkspacePage({
               Files ({project.fileCount})
             </summary>
             <div className="max-h-72 overflow-auto border-t border-line p-2 lg:max-h-none lg:overflow-visible lg:border-t-0">
-              <p className="mb-2 border-b border-line px-2 pb-2 font-mono text-[11px] text-silver-500">
+              <div className="mb-2 flex items-start justify-between gap-2 border-b border-line px-2 pb-2 font-mono text-[11px] text-silver-500">
                 <UploadSummary
                   fileCount={project.fileCount}
                   stats={project.uploadStats}
                 />
-              </p>
+                <ReplaceCodeButton
+                  projectId={id}
+                  fileCount={project.fileCount}
+                />
+              </div>
               {tree}
             </div>
           </details>
