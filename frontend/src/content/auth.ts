@@ -3,6 +3,7 @@
 export const loginCopy = {
   title: "Welcome back",
   subtitle: "Sign in to your workspace.",
+  expired: "Your session ended. Please sign in again.",
   submit: "Sign in",
   pending: "Signing in…",
   switchText: "New to Redline?",
