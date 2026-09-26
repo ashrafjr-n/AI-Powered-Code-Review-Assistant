@@ -90,7 +90,7 @@ export const steps: Step[] = [
   {
     number: "02",
     title: "Pick a lens",
-    body: "Review one file, a few files or the whole project, through a Security, Performance or Quality lens.",
+    body: "Review one file, a few files, the whole project or the change between two files, through a Security, Performance or Quality lens.",
   },
   {
     number: "03",
