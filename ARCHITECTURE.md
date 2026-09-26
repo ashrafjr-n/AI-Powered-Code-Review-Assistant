@@ -167,6 +167,7 @@ erDiagram
     string name
     string description
     json uploadStats
+    int codeVersion "+1 per upload"
   }
   File {
     uuid id PK
@@ -183,6 +184,7 @@ erDiagram
     enum scope "FILE FILES PROJECT DIFF"
     string_array filePaths
     text diff "DIFF only, nullable"
+    int codeVersion "version it read"
     text summary
     json issues
     json recommendations
@@ -217,6 +219,7 @@ erDiagram
     enum kind "ARCHITECTURE README SETUP API_DOCS"
     text content
     string_array filePaths
+    int codeVersion "version it read"
     string providerName
     string model
   }
@@ -231,6 +234,7 @@ Design notes:
 - **UUID v7 ids.** They sort by time, and the API rejects any other id format early (`ParseUUIDPipe`).
 - **Cascades.** Deleting a user or project removes everything under it (`onDelete: Cascade`).
 - **Snapshots.** Reviews and documents store the provider name and model, so history stays correct after a provider is edited or deleted.
+- **Code versions.** `Project.codeVersion` goes up by one on every upload (in the same transaction). Reviews and documents save the version they read. The code viewer shows issue dots only from the newest full review of the current version (never from diff reviews), an older report says the code was replaced, and older documents are marked outdated.
 - **`highestSeverity` is stored**, not computed on read, so history can filter and show badges without reading the issues JSON.
 - **`issues` and `recommendations` are JSON.** They are always written after Zod validation, so the shape is known.
 - **`File.size`** lets the file tree load without file contents. Content is loaded one file at a time.
@@ -330,7 +334,7 @@ flowchart LR
 |---|---|
 | ZIP picked in the browser | 200 MB (slimmed before upload) |
 | ZIP received by the backend | 10 MB · 2,000 files · 512 KB per file · 50 MB unpacked |
-| Review context | 48,000 characters of whole files |
+| Review context | 48,000 characters of whole files with an own provider (its context size is unknown); 160,000 with the large-context demo model (`DEMO_MAX_CHARS`) |
 | Chat context | top 3 files (8,000 characters each), 300 paths, last 6 messages |
 | Insight context | 40,000 characters, 500 paths |
 | AI call time | 270 s, including the retry (below the 300 s frontend limit) |

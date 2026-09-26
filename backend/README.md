@@ -40,7 +40,7 @@ See [.env.example](.env.example) for every variable with a comment.
 | `BFF_SECRET` | production | Same value as in the frontend. Lets the Next.js server pass the user's IP (`X-Client-IP`) for rate limits. `openssl rand -hex 32` |
 | `NODE_ENV` | production | `production` = login cookie is HTTPS only |
 | `ALLOW_LOCAL_PROVIDERS` | dev only | `true` allows models on localhost/private networks. **Never set it on a public server** (SSRF protection) |
-| `DEMO_*` | optional | Built-in free demo model (any OpenAI-compatible API) and its daily limits. Empty `DEMO_BASE_URL` = demo off |
+| `DEMO_*` | optional | Built-in free demo model (any OpenAI-compatible API) and its daily limits; `DEMO_MAX_CHARS` = review size for this large-context model (default 160,000). Empty `DEMO_BASE_URL` = demo off |
 | `PORT` | optional | Default 4000 |
 
 ## Scripts
