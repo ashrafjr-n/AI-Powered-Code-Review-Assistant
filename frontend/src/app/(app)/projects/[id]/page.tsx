@@ -5,6 +5,7 @@ import { ChatPanel } from "@/components/workspace/chat-panel";
 import { CodeViewer } from "@/components/workspace/code-viewer";
 import { FileTree } from "@/components/workspace/file-tree";
 import { HiddenFileNotice } from "@/components/workspace/hidden-file-notice";
+import { InsightDocument } from "@/components/workspace/insight-document";
 import { InsightsPanel } from "@/components/workspace/insights-panel";
 import { PanelTabs } from "@/components/workspace/panel-tabs";
 import { REVIEW_FORM_ID } from "@/components/workspace/review-form";
@@ -13,7 +14,12 @@ import { UploadDropzone } from "@/components/workspace/upload-dropzone";
 import { UploadSummary } from "@/components/workspace/upload-summary";
 import { buildFileTree } from "@/lib/file-tree";
 import { issueMarkers } from "@/lib/issue-markers";
-import { firstParam, parseTab } from "@/lib/workspace-url";
+import {
+  firstParam,
+  parseDoc,
+  parseTab,
+  workspaceHref,
+} from "@/lib/workspace-url";
 import { listChatSessions } from "@/lib/api/chat";
 import { getFile, listFiles } from "@/lib/api/files";
 import { listInsights } from "@/lib/api/insights";
@@ -65,6 +71,11 @@ export default async function WorkspacePage({
   ]);
   // Only possible if the files were replaced between the two requests.
   if (!file && !selected.sensitive) notFound();
+  // A generated document takes the wide middle pane while the Insights tab is open.
+  const openDoc =
+    tab === "insights"
+      ? insights.find((insight) => insight.kind === parseDoc(query.doc))
+      : undefined;
   const chatParam = firstParam(query.chat);
   const activeChat =
     chatParam === "new"
@@ -104,7 +115,15 @@ export default async function WorkspacePage({
         </div>
 
         <div className="flex min-h-[420px] min-w-0 flex-col overflow-hidden rounded-md border border-line bg-ink-900 lg:min-h-0">
-          {file ? (
+          {openDoc ? (
+            <InsightDocument
+              insight={openDoc}
+              closeHref={workspaceHref(id, {
+                tab: "insights",
+                file: selected.path,
+              })}
+            />
+          ) : file ? (
             <CodeViewer
               file={file}
               highlightLine={file.path === requested ? line : undefined}
@@ -137,7 +156,12 @@ export default async function WorkspacePage({
               />
             )}
             {tab === "insights" && (
-              <InsightsPanel projectId={id} insights={insights} />
+              <InsightsPanel
+                projectId={id}
+                insights={insights}
+                openDoc={openDoc?.kind}
+                file={selected.path}
+              />
             )}
           </div>
         </aside>
