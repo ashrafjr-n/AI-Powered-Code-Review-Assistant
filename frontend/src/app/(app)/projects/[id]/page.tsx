@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { FolderTree } from "lucide-react";
 import { ChatPanel } from "@/components/workspace/chat-panel";
@@ -8,6 +9,7 @@ import { HiddenFileNotice } from "@/components/workspace/hidden-file-notice";
 import { InsightDocument } from "@/components/workspace/insight-document";
 import { InsightsPanel } from "@/components/workspace/insights-panel";
 import { PanelTabs } from "@/components/workspace/panel-tabs";
+import { ResizablePanes } from "@/components/workspace/resizable-panes";
 import { REVIEW_FORM_ID } from "@/components/workspace/review-form";
 import { ReviewPanel } from "@/components/workspace/review-panel";
 import { ReplaceCodeButton } from "@/components/workspace/replace-code-button";
@@ -16,6 +18,7 @@ import { UploadRules } from "@/components/workspace/upload-rules";
 import { UploadSummary } from "@/components/workspace/upload-summary";
 import { buildFileTree } from "@/lib/file-tree";
 import { issueMarkers } from "@/lib/issue-markers";
+import { PANE_COOKIE, parsePaneCookie } from "@/lib/pane-layout";
 import {
   firstParam,
   parseDoc,
@@ -96,9 +99,10 @@ export default async function WorkspacePage({
   );
 
   return (
-    <div>
-      <div className="grid gap-4 lg:h-[calc(100dvh-7.5rem)] lg:min-h-[560px] lg:grid-cols-[240px_minmax(0,1fr)_360px]">
-        {/* One file tree: collapsible on small screens, a plain sidebar on desktop. */}
+    <ResizablePanes
+      initial={parsePaneCookie((await cookies()).get(PANE_COOKIE)?.value)}
+      tree={
+        // One file tree: collapsible on small screens, a plain sidebar on desktop.
         <div className="min-h-0 rounded-md border border-line bg-ink-900 lg:overflow-auto">
           <details open className="group">
             <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 font-mono text-xs text-silver-400 lg:hidden [&::-webkit-details-marker]:hidden">
@@ -120,7 +124,8 @@ export default async function WorkspacePage({
             </div>
           </details>
         </div>
-
+      }
+      code={
         <div className="flex min-h-[420px] min-w-0 flex-col overflow-hidden rounded-md border border-line bg-ink-900 lg:min-h-0">
           {openDoc ? (
             <InsightDocument
@@ -140,7 +145,8 @@ export default async function WorkspacePage({
             <HiddenFileNotice path={selected.path} />
           )}
         </div>
-
+      }
+      panel={
         <aside
           aria-label="Review, chat and insights"
           className="flex min-h-[480px] min-w-0 flex-col overflow-hidden rounded-md border border-line bg-ink-900 lg:min-h-0"
@@ -175,7 +181,7 @@ export default async function WorkspacePage({
             )}
           </div>
         </aside>
-      </div>
-    </div>
+      }
+    />
   );
 }
