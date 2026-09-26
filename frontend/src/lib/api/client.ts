@@ -1,5 +1,5 @@
 import "server-only";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AUTH_COOKIE } from "@/lib/auth-cookie";
 import { readError, type BackendError } from "./error-message";
@@ -24,6 +24,19 @@ export function backendUrl(): string {
 }
 
 /**
+ * The browser's IP, signed with the secret shared with the backend. Every call reaches the
+ * backend from this server, so without it rate limits would count this server, not users.
+ * Vercel sets x-real-ip / x-forwarded-for itself, so browsers can't fake them.
+ */
+export async function clientIpHeaders(): Promise<Record<string, string>> {
+  const secret = process.env.BFF_SECRET;
+  const all = await headers();
+  const ip =
+    all.get("x-real-ip") ?? all.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return secret && ip ? { "X-Client-IP": ip, "X-BFF-Secret": secret } : {};
+}
+
+/**
  * Calls the backend as the signed-in user (forwards the login cookie).
  * A 401 means the session is gone or expired → back to the login page.
  */
@@ -37,6 +50,7 @@ export async function apiFetch<T>(
     cache: "no-store",
     headers: {
       "Content-Type": "application/json",
+      ...(await clientIpHeaders()),
       ...(token ? { Cookie: `${AUTH_COOKIE}=${token}` } : {}),
       ...init.headers,
     },
