@@ -10,12 +10,14 @@ interface UserMenuProps {
   placement?: "app" | "site";
 }
 
-// The menu lives in the top layer (popover), so it is placed against the viewport:
-// under the header, aligned with the right edge of the header's content.
+// The menu lives in the top layer (popover). Browsers with CSS anchor positioning put it
+// right under the avatar, right edges aligned. Others fall back to a fixed spot under the header.
 const MENU_POSITION = {
   app: "top-14 right-4",
   site: "top-16 right-[max(1rem,calc((100vw-1200px)/2+2rem))]",
 };
+const ANCHORED =
+  "[position-anchor:--user-menu] supports-[position-area:bottom]:inset-auto supports-[position-area:bottom]:[position-area:bottom_span-left]";
 
 function initials(name: string): string {
   return name
@@ -34,14 +36,14 @@ export function UserMenu({ user, placement = "app" }: UserMenuProps) {
         type="button"
         popoverTarget="user-menu"
         aria-label={`Account menu for ${user.name}`}
-        className="flex size-8 items-center justify-center rounded-sm border border-line-strong bg-ink-800 font-mono text-xs text-paper transition-colors hover:border-silver-500"
+        className="flex size-8 [anchor-name:--user-menu] items-center justify-center rounded-sm border border-line-strong bg-ink-800 font-mono text-xs text-paper transition-colors hover:border-silver-500"
       >
         {initials(user.name)}
       </button>
       <div
         id="user-menu"
         popover="auto"
-        className={`fixed ${MENU_POSITION[placement]} bottom-auto left-auto m-0 mt-1 w-64 rounded-md border border-line bg-ink-900 p-1 text-sm shadow-[0_16px_48px_-12px_rgb(0_0_0/0.8)]`}
+        className={`fixed ${MENU_POSITION[placement]} ${ANCHORED} bottom-auto left-auto m-0 mt-1 w-64 rounded-md border border-line bg-ink-900 p-1 text-sm shadow-[0_16px_48px_-12px_rgb(0_0_0/0.8)]`}
       >
         <div className="border-b border-line px-3 py-3">
           <p className="truncate text-paper">{user.name}</p>
