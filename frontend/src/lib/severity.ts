@@ -22,6 +22,15 @@ export function countBySeverity(
   return counts;
 }
 
+/** Worst severity in a list; null when there are no issues. */
+export function highestSeverity(issues: ReviewIssue[]): Severity | null {
+  return (
+    SEVERITY_ORDER.find((level) =>
+      issues.some((issue) => issue.severity === level),
+    ) ?? null
+  );
+}
+
 function plural(count: number, word: string): string {
   return `${count} ${word}${count === 1 ? "" : "s"}`;
 }
