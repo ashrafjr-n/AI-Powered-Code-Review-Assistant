@@ -8,6 +8,7 @@ import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { LoginDto, RegisterDto } from './auth.schemas.js';
 import type { JwtPayload } from './auth.types.js';
+import { LoginAttempts } from './login-attempts.js';
 import { hashPassword, verifyPassword } from './password.js';
 
 // Never select passwordHash into anything we send back.
@@ -20,7 +21,12 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly attempts: LoginAttempts,
   ) {}
+
+  // Checked when the email doesn't exist, so a wrong email takes as long as a wrong
+  // password: response time can't reveal which emails have accounts.
+  private readonly dummyHash = hashPassword('not-a-real-password');
 
   async register(dto: RegisterDto): Promise<PublicUser> {
     try {
@@ -44,14 +50,23 @@ export class AuthService {
     }
   }
 
-  async login(dto: LoginDto): Promise<PublicUser> {
+  /** `ip` = the user's IP (see clientIp()), for the failed sign-in limits. */
+  async login(dto: LoginDto, ip: string): Promise<PublicUser> {
+    // Unknown emails are counted too, so a lock doesn't reveal that an account exists.
+    this.attempts.assertAllowed(dto.email, ip);
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
-    if (!user || !(await verifyPassword(dto.password, user.passwordHash))) {
+    const valid = await verifyPassword(
+      dto.password,
+      user?.passwordHash ?? (await this.dummyHash),
+    );
+    if (!user || !valid) {
+      this.attempts.recordFailure(dto.email, ip);
       // One message for both cases, so we don't tell attackers which emails exist.
       throw new UnauthorizedException('Invalid email or password');
     }
+    this.attempts.recordSuccess(dto.email, ip);
     return { id: user.id, email: user.email, name: user.name };
   }
 

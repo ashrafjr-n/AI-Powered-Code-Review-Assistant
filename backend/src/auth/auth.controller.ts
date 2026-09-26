@@ -1,6 +1,15 @@
-import { Body, Controller, Get, HttpCode, Post, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import type { CookieOptions, Response } from 'express';
+import type { CookieOptions, Request, Response } from 'express';
+import { clientIp } from '../common/client-ip.js';
 import {
   loginSchema,
   registerSchema,
@@ -21,7 +30,8 @@ const cookieOptions: CookieOptions = {
   path: '/',
 };
 
-// Stricter limit on login/register to slow down password guessing.
+// Stricter limit on login/register (per IP) to slow down password guessing.
+// Failed logins per account are limited too (LoginAttempts).
 const AUTH_THROTTLE = { default: { limit: 10, ttl: 60_000 } };
 
 @Controller('auth')
@@ -46,9 +56,10 @@ export class AuthController {
   @HttpCode(200)
   async login(
     @Body({ schema: loginSchema }) dto: LoginDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<PublicUser> {
-    const user = await this.auth.login(dto);
+    const user = await this.auth.login(dto, clientIp(req));
     await this.setAuthCookie(res, user.id);
     return user;
   }

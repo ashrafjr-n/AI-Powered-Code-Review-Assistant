@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module.js';
 import { ChatModule } from './chat/chat.module.js';
 import { FilesModule } from './files/files.module.js';
@@ -13,7 +12,8 @@ import { ReviewsModule } from './reviews/reviews.module.js';
 
 @Module({
   imports: [
-    // Default: 100 requests per minute per IP. Auth routes set a stricter limit.
+    // Default: 100 requests per minute per user (per IP when signed out).
+    // Auth routes set a stricter limit. The guard is registered in AuthModule.
     ThrottlerModule.forRoot({
       throttlers: [{ ttl: 60_000, limit: 100 }],
       // Shown to users as is (the default is "ThrottlerException: Too Many Requests").
@@ -29,7 +29,5 @@ import { ReviewsModule } from './reviews/reviews.module.js';
     InsightsModule,
   ],
   controllers: [HealthController],
-  // Global rate limit for every route (AuthGuard is registered in AuthModule).
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
