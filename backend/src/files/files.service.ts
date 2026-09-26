@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ProjectsService } from '../projects/projects.service.js';
 import { extractZip, InvalidZipError, type SkipCounts } from './unzip.js';
 
 export interface FileEntry {
@@ -30,15 +31,10 @@ export interface FileWithContent extends FileEntry {
 
 @Injectable()
 export class FilesService {
-  constructor(private readonly prisma: PrismaService) {}
-
-  // Same rule as ProjectsService: another user's project is simply "not found".
-  private async assertOwner(userId: string, projectId: string): Promise<void> {
-    const count = await this.prisma.project.count({
-      where: { id: projectId, userId },
-    });
-    if (count === 0) throw new NotFoundException('Project not found');
-  }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly projects: ProjectsService,
+  ) {}
 
   /**
    * A new upload replaces all files of the project.
@@ -51,7 +47,7 @@ export class FilesService {
     zip: Uint8Array,
     clientSkipped: SkipCounts,
   ): Promise<UploadStats> {
-    await this.assertOwner(userId, projectId);
+    await this.projects.findOwned(userId, projectId);
     let result;
     try {
       result = extractZip(zip);
@@ -87,7 +83,7 @@ export class FilesService {
 
   /** Paths and sizes only: the tree never needs file content. */
   async list(userId: string, projectId: string): Promise<FileEntry[]> {
-    await this.assertOwner(userId, projectId);
+    await this.projects.findOwned(userId, projectId);
     return this.prisma.file.findMany({
       where: { projectId },
       orderBy: { path: 'asc' },
@@ -100,7 +96,7 @@ export class FilesService {
     projectId: string,
     path: string,
   ): Promise<FileWithContent> {
-    await this.assertOwner(userId, projectId);
+    await this.projects.findOwned(userId, projectId);
     const file = await this.prisma.file.findUnique({
       where: { projectId_path: { projectId, path } },
       select: { path: true, size: true, content: true, sensitive: true },

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import type { Prisma, ReviewMode } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ProjectsService } from '../projects/projects.service.js';
 import { providerClient } from '../providers/provider-client.js';
 import {
   ProvidersService,
@@ -76,6 +77,7 @@ export class ReviewsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly providers: ProvidersService,
+    private readonly projects: ProjectsService,
   ) {}
 
   /**
@@ -88,10 +90,7 @@ export class ReviewsService {
     scope: RunReviewDto['scope'],
     filePaths: string[],
   ) {
-    const owned = await this.prisma.project.count({
-      where: { id: projectId, userId },
-    });
-    if (owned === 0) throw new NotFoundException('Project not found');
+    await this.projects.findOwned(userId, projectId);
     if (scope !== 'PROJECT' && filePaths.length === 0)
       throw new BadRequestException('Pick at least one file.');
 
