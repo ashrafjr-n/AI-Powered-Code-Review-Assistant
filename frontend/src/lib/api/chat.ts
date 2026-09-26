@@ -14,12 +14,18 @@ export async function askQuestion(
   projectId: string,
   sessionId: string | null,
   question: string,
+  /** The file open in the workspace, always sent as context. */
+  currentFile?: string,
 ): Promise<string> {
   const { sessionId: id } = await apiFetch<{ sessionId: string }>(
     `/projects/${encodeURIComponent(projectId)}/chats/messages`,
     {
       method: "POST",
-      body: JSON.stringify({ sessionId: sessionId ?? undefined, question }),
+      body: JSON.stringify({
+        sessionId: sessionId ?? undefined,
+        question,
+        currentFile,
+      }),
     },
   );
   return id;

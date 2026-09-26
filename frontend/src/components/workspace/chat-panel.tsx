@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { FileCode2, Plus } from "lucide-react";
 import { buttonClass } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import type { ChatSession } from "@/lib/types";
@@ -15,11 +17,18 @@ const SUGGESTIONS = [
 interface ChatPanelProps {
   projectId: string;
   sessions: ChatSession[];
+  /** The file open in the code viewer; always sent as context. */
+  currentFile?: string;
   /** null = a new, empty conversation. */
   active: ChatSession | null;
 }
 
-export function ChatPanel({ projectId, sessions, active }: ChatPanelProps) {
+export function ChatPanel({
+  projectId,
+  sessions,
+  currentFile,
+  active,
+}: ChatPanelProps) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center gap-2 border-b border-line p-3">
@@ -83,9 +92,13 @@ export function ChatPanel({ projectId, sessions, active }: ChatPanelProps) {
               </li>
             ) : (
               <li key={message.id} className="space-y-2">
-                <p className="text-sm leading-relaxed whitespace-pre-wrap text-silver-300">
-                  {message.content}
-                </p>
+                {/* Model output is untrusted: react-markdown builds React elements,
+                    no raw HTML runs (same as generated docs). */}
+                <div className="doc-view doc-compact">
+                  <Markdown remarkPlugins={[remarkGfm]}>
+                    {message.content}
+                  </Markdown>
+                </div>
                 {message.sources && message.sources.length > 0 && (
                   <p className="flex flex-wrap gap-x-2 gap-y-1 font-mono text-xs text-silver-500">
                     Sources:
@@ -110,9 +123,20 @@ export function ChatPanel({ projectId, sessions, active }: ChatPanelProps) {
         )}
       </ol>
 
+      {currentFile && (
+        <p className="flex items-center gap-1.5 border-t border-line px-4 pt-3 font-mono text-[11px] text-silver-500">
+          <FileCode2
+            aria-hidden
+            className="size-3.5 shrink-0"
+            strokeWidth={1.5}
+          />
+          <span className="truncate">Also reading {currentFile}</span>
+        </p>
+      )}
       <ChatComposer
         projectId={projectId}
         sessionId={active?.id ?? null}
+        currentFile={currentFile}
         suggestions={!active || active.messages.length === 0 ? SUGGESTIONS : []}
       />
     </div>

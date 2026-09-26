@@ -105,7 +105,8 @@ export async function sendChatAction(
   // The backend checks that the project (and conversation) are yours.
   let id: string;
   try {
-    id = await askQuestion(projectId, sessionId, question);
+    const currentFile = String(formData.get("currentFile") ?? "") || undefined;
+    id = await askQuestion(projectId, sessionId, question, currentFile);
   } catch (error) {
     return { ...failure(error), question };
   }

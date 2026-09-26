@@ -14,12 +14,15 @@ import { useElapsed, withElapsed } from "@/lib/use-elapsed";
 interface ChatComposerProps {
   projectId: string;
   sessionId: string | null;
+  /** The open file: sent with every question as context. */
+  currentFile?: string;
   suggestions: string[];
 }
 
 export function ChatComposer({
   projectId,
   sessionId,
+  currentFile,
   suggestions,
 }: ChatComposerProps) {
   // Shows the question right away while the server works (replaced by the real list after).
@@ -59,6 +62,7 @@ export function ChatComposer({
       {state.demo && <DemoLimitPanel notice={state.demo} />}
       <FormError message={state.error} />
       <form action={formAction} className="space-y-3">
+        <input type="hidden" name="currentFile" value={currentFile ?? ""} />
         {suggestions.length > 0 && !pending && (
           <div className="flex flex-wrap gap-2">
             {suggestions.map((suggestion) => (

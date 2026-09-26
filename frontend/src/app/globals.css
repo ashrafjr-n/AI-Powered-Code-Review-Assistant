@@ -200,6 +200,14 @@
   .doc-view > :first-child {
     margin-top: 0;
   }
+  /* Chat answers: the same safe Markdown styles, smaller, no space after the end. */
+  .doc-view.doc-compact {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .doc-view.doc-compact > :last-child {
+    margin-bottom: 0;
+  }
   .doc-view :is(h1, h2, h3, h4) {
     color: var(--color-paper);
     font-weight: 600;

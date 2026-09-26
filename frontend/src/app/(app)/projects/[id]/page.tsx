@@ -168,6 +168,7 @@ export default async function WorkspacePage({
               <ChatPanel
                 projectId={id}
                 sessions={sessions}
+                currentFile={file?.path}
                 active={activeChat}
               />
             )}
