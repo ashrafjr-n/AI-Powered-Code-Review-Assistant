@@ -17,7 +17,11 @@ describe('Reviews (e2e)', () => {
   let replies: string[] = [];
   const prompts: string[] = [];
   const stamp = Date.now();
-  const emails = [`rev-a-${stamp}@test.dev`, `rev-b-${stamp}@test.dev`];
+  const emails = [
+    `rev-a-${stamp}@test.dev`,
+    `rev-b-${stamp}@test.dev`,
+    `rev-c-${stamp}@test.dev`,
+  ];
 
   const goodReply = JSON.stringify({
     summary: 'A tiny shop with one leaked key.',
@@ -218,5 +222,92 @@ describe('Reviews (e2e)', () => {
       .post(run)
       .send({ mode: 'SECURITY', scope: 'PROJECT' })
       .expect(404);
+  });
+
+  it('reviews only the change between two files (DIFF)', async () => {
+    const owner = await signedIn(emails[2]);
+    const { body: project } = await owner
+      .post('/api/projects')
+      .send({ name: 'Login' })
+      .expect(201);
+    const loginV1 = 'const a = 1;\nif (!user) throw err;\nlogin(user);\n';
+    await owner
+      .post(`/api/projects/${project.id}/files`)
+      .attach(
+        'file',
+        Buffer.from(
+          zipSync({
+            'src/login.ts': strToU8(loginV1),
+            'src/login.v2.ts': strToU8(
+              'const a = 1;\nlogin(user);\nlog(password);\n',
+            ),
+            'src/copy.ts': strToU8(loginV1),
+            '.env': strToU8('SECRET=x'),
+          }),
+        ),
+        'login.zip',
+      )
+      .expect(201);
+    await owner
+      .post('/api/providers')
+      .send({ name: 'Fake', baseUrl: fakeUrl, model: 'fake-coder' })
+      .expect(201);
+    const run = `/api/projects/${project.id}/reviews`;
+    const diff = (filePaths: string[]) =>
+      owner.post(run).send({ mode: 'SECURITY', scope: 'DIFF', filePaths });
+
+    replies = [
+      JSON.stringify({
+        summary: 'The change removes a check and logs a password.',
+        issues: [
+          {
+            title: 'Password written to logs',
+            description: 'd',
+            severity: 'HIGH',
+            filePath: 'login.v2.ts',
+            line: 3,
+          },
+          // Points at the before file: the path is dropped, the issue stays.
+          {
+            title: 'Missing user check',
+            description: 'd',
+            severity: 'CRITICAL',
+            filePath: 'src/login.ts',
+            line: 2,
+          },
+        ],
+        recommendations: [],
+      }),
+    ];
+    prompts.length = 0;
+    const { body: review } = await diff([
+      'src/login.ts',
+      'src/login.v2.ts',
+    ]).expect(201);
+    // Only the change is sent, with after-file numbers; removed lines unnumbered.
+    const sent = JSON.parse(prompts[0]).messages[1].content as string;
+    expect(sent).toContain('=== CHANGE: src/login.ts → src/login.v2.ts ===');
+    expect(sent).toContain('    | -if (!user) throw err;');
+    expect(sent).toContain('   3| +log(password);');
+    expect(review).toMatchObject({
+      scope: 'DIFF',
+      filePaths: ['src/login.ts', 'src/login.v2.ts'],
+      highestSeverity: 'CRITICAL',
+    });
+    expect(review.diff).toContain('+++ src/login.v2.ts');
+    expect(review.issues[0].filePath).toBeUndefined();
+    expect(review.issues[1]).toMatchObject({
+      filePath: 'src/login.v2.ts',
+      line: 3,
+    });
+
+    // Clear 400s before the model is called.
+    const identical = await diff(['src/login.ts', 'src/copy.ts']).expect(400);
+    expect(identical.body.message).toContain('identical');
+    await diff(['src/login.ts', 'src/login.ts']).expect(400);
+    await diff(['src/login.ts']).expect(400);
+    await diff(['src/login.ts', 'nope.ts']).expect(400);
+    await diff(['src/login.ts', '.env']).expect(400);
+    expect(prompts).toHaveLength(1);
   });
 });
