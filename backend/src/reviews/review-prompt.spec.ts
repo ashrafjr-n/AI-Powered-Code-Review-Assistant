@@ -1,4 +1,8 @@
-import { buildReviewMessages, pickFiles } from './review-prompt.js';
+import {
+  buildReviewMessages,
+  pickFiles,
+  rankForReview,
+} from './review-prompt.js';
 
 const file = (path: string, size: number) => ({
   path,
@@ -29,5 +33,26 @@ describe('buildReviewMessages', () => {
     expect(system.content).toContain('security review');
     expect(user.content).toContain('=== FILE: src/a.ts ===');
     expect(user.content).toContain('   2| const b = 2;');
+  });
+});
+
+describe('rankForReview', () => {
+  it('puts source first, then tests, configs and docs last', () => {
+    const paths = [
+      '.eslintrc.json',
+      'README.md',
+      'src/app.spec.ts',
+      'src/app.ts',
+      'package.json',
+      'src/db/pool.ts',
+    ].map((path) => ({ path, content: '' }));
+    expect(rankForReview(paths).map((f) => f.path)).toEqual([
+      'src/app.ts',
+      'src/db/pool.ts',
+      'src/app.spec.ts',
+      '.eslintrc.json',
+      'package.json',
+      'README.md',
+    ]);
   });
 });

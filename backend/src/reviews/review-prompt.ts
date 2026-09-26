@@ -27,6 +27,34 @@ export interface SourceFile {
   content: string;
 }
 
+const SOURCE_EXT =
+  /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|kt|kts|rb|php|cs|swift|c|h|cc|cpp|hpp|vue|svelte|astro|sql|sh|scala|dart|ex|exs|lua)$/;
+const DOC_EXT = /\.(md|mdx|txt|rst|adoc)$/;
+
+/** Higher = reviewed first: source code, then tests/configs, then docs. */
+function reviewPriority(path: string): number {
+  const name = path.split('/').pop()!.toLowerCase();
+  const isTest =
+    /(\.|_)(test|spec)\.\w+$/.test(name) ||
+    /(^|\/)(tests?|__tests__|e2e)\//.test(path.toLowerCase());
+  if (SOURCE_EXT.test(name)) return isTest ? 2 : 3;
+  if (DOC_EXT.test(name)) return 0;
+  return 1; // configs, dotfiles, Dockerfile and anything else
+}
+
+/**
+ * Whole-project order: source files first (in path order, so folders stay together),
+ * then tests, then configs, then docs. Alphabetical order alone put dotfiles and
+ * configs first and pushed real code out of the budget.
+ */
+export function rankForReview(files: SourceFile[]): SourceFile[] {
+  return [...files].sort(
+    (a, b) =>
+      reviewPriority(b.path) - reviewPriority(a.path) ||
+      a.path.localeCompare(b.path),
+  );
+}
+
 /**
  * Keeps whole files, in order, until the budget is full. If even the first file is too
  * big, it is cut. Returns what is sent and how many files were left out.
