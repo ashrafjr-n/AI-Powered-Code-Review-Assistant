@@ -1,0 +1,29 @@
+# Claude / AI assistant files (local only, never tracked)
+CLAUDE.md
+AGENTS.md
+vibe.md
+*-principles.md
+project-plan.md
+.claude/
+graphify-out/
+
+# Assessment brief (private, from the company)
+*.docx
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies and build output
+node_modules/
+.next/
+dist/
+coverage/
+*.tsbuildinfo
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+*.log
