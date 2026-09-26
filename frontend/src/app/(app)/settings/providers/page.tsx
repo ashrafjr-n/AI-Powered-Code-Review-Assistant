@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import { Cpu, HardDrive } from "lucide-react";
-import { ProviderActions } from "@/components/settings/provider-actions";
+import { AddProviderButton } from "@/components/settings/add-provider-button";
 import { DemoCard } from "@/components/settings/demo-card";
-import { ProviderFormDialog } from "@/components/settings/provider-form-dialog";
+import { ProviderCard } from "@/components/settings/provider-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
-import { providerLocation } from "@/lib/providers";
 import {
   getDemoStatus,
   getProviderOptions,
@@ -21,6 +20,20 @@ export default async function ProvidersPage() {
     getDemoStatus(),
     getProviderOptions(),
   ]);
+  // The main model first, so it's found at a glance; the rest keep their saved order.
+  const sorted = [...providers].sort(
+    (a, b) => Number(b.isDefault) - Number(a.isDefault),
+  );
+  const demoCard = demo.enabled && (
+    <DemoCard
+      model={demo.model}
+      used={demo.used}
+      limit={demo.limit}
+      resetsAt={demo.resetsAt}
+      siteLimitReached={demo.siteLimitReached}
+      inUse={providers.length === 0}
+    />
+  );
 
   return (
     <div className="max-w-4xl space-y-8">
@@ -29,73 +42,42 @@ export default async function ProvidersPage() {
         description="Choose which model reviews your code. Any OpenAI-compatible API works."
         actions={
           providers.length > 0 ? (
-            <ProviderFormDialog localModels={options.localModels} />
+            <AddProviderButton localModels={options.localModels} />
           ) : undefined
         }
       />
 
-      {demo.enabled && (
-        <DemoCard
-          model={demo.model}
-          used={demo.used}
-          limit={demo.limit}
-          resetsAt={demo.resetsAt}
-          siteLimitReached={demo.siteLimitReached}
-          inUse={!providers.some((provider) => provider.isDefault)}
-        />
-      )}
-
       {providers.length === 0 ? (
-        <EmptyState
-          icon={Cpu}
-          title="No model of your own yet"
-          body={emptyProvidersBody}
-          action={<ProviderFormDialog localModels={options.localModels} />}
-        />
+        <>
+          {demoCard}
+          <EmptyState
+            icon={Cpu}
+            title="No model of your own yet"
+            body={emptyProvidersBody}
+            action={<AddProviderButton localModels={options.localModels} />}
+          />
+        </>
       ) : (
-        <ul className="space-y-3">
-          {providers.map((provider) => (
-            <li
-              key={provider.id}
-              className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-line bg-ink-900 p-5"
+        <>
+          <section aria-labelledby="own-models" className="space-y-3">
+            <h2
+              id="own-models"
+              className="font-mono text-[11px] tracking-label text-silver-500 uppercase"
             >
-              <div className="min-w-0 space-y-1">
-                <p className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium text-paper">
-                    {provider.name}
-                  </span>
-                  {provider.isDefault && (
-                    <span className="rounded-sm border border-silver-300 px-1.5 py-0.5 font-mono text-[11px] tracking-label text-paper uppercase">
-                      In use
-                    </span>
-                  )}
-                  <span className="rounded-sm border border-line px-1.5 py-0.5 font-mono text-[11px] tracking-label text-silver-500 uppercase">
-                    {providerLocation(provider.baseUrl)}
-                  </span>
-                </p>
-                <p className="truncate font-mono text-xs text-silver-400">
-                  {provider.baseUrl} · {provider.model}
-                </p>
-                <p className="font-mono text-xs text-silver-500">
-                  {provider.hasApiKey
-                    ? "API key stored, encrypted"
-                    : "No API key"}
-                </p>
-              </div>
-              <div className="flex items-center gap-1">
-                <ProviderFormDialog
+              Your models · click one to make it main
+            </h2>
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {sorted.map((provider) => (
+                <ProviderCard
+                  key={provider.id}
                   provider={provider}
                   localModels={options.localModels}
                 />
-                <ProviderActions
-                  id={provider.id}
-                  name={provider.name}
-                  isDefault={provider.isDefault}
-                />
-              </div>
-            </li>
-          ))}
-        </ul>
+              ))}
+            </ul>
+          </section>
+          {demoCard}
+        </>
       )}
 
       <p className="flex gap-3 border-l border-silver-500 pl-4 text-sm leading-relaxed text-silver-400">
