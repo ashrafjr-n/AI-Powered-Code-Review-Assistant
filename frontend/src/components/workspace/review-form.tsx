@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState } from "react";
+import { startTransition, useActionState, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { runReviewAction } from "@/app/(app)/projects/[id]/actions";
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,31 @@ export function ReviewForm({
     {},
   );
   const seconds = useElapsed(pending);
+  const [ticked, setTicked] = useState(0);
+
+  // The tree's checkboxes join this form with the `form` attribute but live outside it
+  // in the DOM, so their change events are heard on the document. Ticking a file picks
+  // "Selected files": otherwise the review would silently run on the open file only.
+  useEffect(() => {
+    function onChange(event: Event) {
+      const box = event.target;
+      if (
+        !(box instanceof HTMLInputElement) ||
+        box.name !== "files" ||
+        box.form?.id !== REVIEW_FORM_ID
+      )
+        return;
+      const scope = box.form.elements.namedItem("scope") as RadioNodeList;
+      if (box.checked) scope.value = "FILES";
+      setTicked(
+        document.querySelectorAll(
+          `input[name="files"][form="${REVIEW_FORM_ID}"]:checked`,
+        ).length,
+      );
+    }
+    document.addEventListener("change", onChange);
+    return () => document.removeEventListener("change", onChange);
+  }, []);
 
   // Submitted by hand (not the form's action prop), because React resets a form after an
   // action. After an error the user would lose their lens, scope and ticked files.
@@ -118,7 +143,9 @@ export function ReviewForm({
           <span>
             <span className="block text-sm text-paper">Selected files</span>
             <span className="block text-xs text-silver-500">
-              Tick files in the tree
+              {ticked > 0
+                ? `${ticked} ${ticked === 1 ? "file" : "files"} ticked`
+                : "Tick files in the tree"}
             </span>
           </span>
         </label>
