@@ -73,6 +73,14 @@ export function ReviewPanel({
             })}
           </ul>
         )}
+        {reviews.length > 5 && (
+          <Link
+            href={`/reviews?project=${projectId}`}
+            className="inline-block font-mono text-xs text-silver-400 underline decoration-line-strong underline-offset-4 hover:text-paper"
+          >
+            See all {reviews.length} reviews →
+          </Link>
+        )}
       </section>
     </div>
   );
