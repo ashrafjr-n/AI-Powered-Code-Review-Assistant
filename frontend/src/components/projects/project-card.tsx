@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SeverityBadge } from "@/components/ui/severity-badge";
+import { IssueBlocks } from "@/components/ui/issue-blocks";
 import { formatDate } from "@/lib/format";
 import type { ProjectSummary } from "@/lib/types";
 import { DeleteProjectButton } from "./delete-project-button";
@@ -44,8 +44,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
         <span>
           {project.fileCount} files · {formatDate(project.createdAt)}
         </span>
-        {severity ? (
-          <SeverityBadge severity={severity} />
+        {project.lastReview && severity ? (
+          // One block per issue of the latest review (1 critical = one red block).
+          <IssueBlocks counts={project.lastReview.counts} max={12} size="sm" />
         ) : (
           <span>{status}</span>
         )}

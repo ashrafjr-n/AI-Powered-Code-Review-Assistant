@@ -1,3 +1,4 @@
+import { IssueBlocks } from "@/components/ui/issue-blocks";
 import { cn } from "@/lib/cn";
 import {
   countBySeverity,
@@ -35,20 +36,12 @@ interface SeverityBarProps {
   variant?: "share" | "count";
 }
 
-// Enough blocks to show a real review; more are summarised as "+N".
-const MAX_BLOCKS = 40;
-
 export function SeverityBar({
   issues,
   surface = "ink",
   variant = "share",
 }: SeverityBarProps) {
   const counts = countBySeverity(issues);
-  // Issues come sorted worst first, so the blocks read left (worst) to right.
-  const blocks = SEVERITY_ORDER.flatMap((severity) =>
-    Array.from({ length: counts[severity] }, () => severity),
-  );
-  const hidden = Math.max(0, blocks.length - MAX_BLOCKS);
   const segments = SEVERITY_ORDER.filter(
     (severity) => counts[severity] > 0,
   ).map((severity) => ({
@@ -59,25 +52,7 @@ export function SeverityBar({
   return (
     <div>
       {variant === "count" ? (
-        <div className="flex flex-wrap items-center gap-1" aria-hidden>
-          {blocks.length === 0 && (
-            <span className="h-2 w-5 rounded-sm bg-line" />
-          )}
-          {blocks.slice(0, MAX_BLOCKS).map((severity, index) => (
-            <span
-              key={index}
-              className={cn(
-                "h-2 w-5 rounded-sm",
-                segmentClass[surface][severity],
-              )}
-            />
-          ))}
-          {hidden > 0 && (
-            <span className="ml-1 font-mono text-xs text-silver-500">
-              +{hidden}
-            </span>
-          )}
-        </div>
+        <IssueBlocks counts={counts} />
       ) : (
         <div
           className={cn(
