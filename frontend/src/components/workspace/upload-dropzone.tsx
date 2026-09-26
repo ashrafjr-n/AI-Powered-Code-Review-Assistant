@@ -5,6 +5,7 @@ import type { DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import { FileArchive, UploadCloud } from "lucide-react";
 import { FormError } from "@/components/ui/form-error";
+import { uploadRules } from "@/content/upload";
 import { errorMessage } from "@/lib/api/error-message";
 import { cn } from "@/lib/cn";
 import { formatBytes } from "@/lib/format";
@@ -104,8 +105,6 @@ export function UploadDropzone({ projectId }: UploadDropzoneProps) {
         </span>
         <span className="mt-2 max-w-sm text-sm leading-relaxed text-silver-400">
           or click to choose a file, up to {formatBytes(MAX_PICKED_ZIP_BYTES)}.
-          node_modules, build output, .git and binary files are removed in your
-          browser before upload.
         </span>
         <input
           type="file"
@@ -119,6 +118,18 @@ export function UploadDropzone({ projectId }: UploadDropzoneProps) {
           }}
         />
       </label>
+      <dl className="grid gap-x-8 gap-y-4 rounded-md border border-line p-5 text-sm sm:grid-cols-2">
+        {uploadRules.map((rule) => (
+          <div key={rule.title}>
+            <dt className="font-mono text-[11px] tracking-label text-silver-500 uppercase">
+              {rule.title}
+            </dt>
+            <dd className="mt-1 leading-relaxed text-silver-400">
+              {rule.body}
+            </dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }
