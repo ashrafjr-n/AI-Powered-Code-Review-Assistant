@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useId, useState, useTransition } from "react";
-import { Check, CircleAlert, Pencil, Plus } from "lucide-react";
+import { Check, CircleAlert } from "lucide-react";
 import {
   saveProviderAction,
   testConnectionAction,
@@ -22,11 +22,15 @@ interface ProviderFormDialogProps {
   provider?: AiProvider;
   /** false on a public server: localhost presets need a tunnel address instead. */
   localModels: boolean;
+  open: boolean;
+  onClose: () => void;
 }
 
 export function ProviderFormDialog({
   provider,
   localModels,
+  open,
+  onClose,
 }: ProviderFormDialogProps) {
   const editing = Boolean(provider);
   // Many of these dialogs live on one page (add + one per provider): ids must be unique.
@@ -38,7 +42,6 @@ export function ProviderFormDialog({
     model: `${uid}-model`,
     models: `${uid}-models`,
   };
-  const [open, setOpen] = useState(false);
   const initialValues = {
     name: provider?.name ?? "",
     baseUrl: provider?.baseUrl ?? "",
@@ -58,7 +61,7 @@ export function ProviderFormDialog({
         formData,
       );
       if (result.ok) {
-        setOpen(false);
+        onClose();
         // A new "Add provider" dialog should start empty; an edit keeps the saved values.
         if (!editing) setValues(initialValues);
         setTest(null);
@@ -80,173 +83,161 @@ export function ProviderFormDialog({
     startTest(async () => setTest(await testConnectionAction(formData)));
   }
 
+  // The trigger lives with the caller (the add button, or a card's menu).
   return (
-    <>
-      {editing ? (
-        <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>
-          <Pencil aria-hidden className="size-4" strokeWidth={1.5} />
-          Edit
-        </Button>
-      ) : (
-        <Button onClick={() => setOpen(true)}>
-          <Plus aria-hidden className="size-4" strokeWidth={1.5} />
-          Add provider
-        </Button>
-      )}
-      <Dialog
-        open={open}
-        onClose={() => setOpen(false)}
-        title={editing ? `Edit ${provider?.name}` : "Add a provider"}
-        description="Any OpenAI-compatible API works. Nothing is hardcoded."
-      >
-        <form action={formAction} className="space-y-5">
-          <FormError message={state.error} />
-          {!editing && (
-            <div>
-              <p className="mb-2 font-mono text-[11px] tracking-label text-silver-500 uppercase">
-                Start from
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {PROVIDER_PRESETS.map((preset) => (
-                  <button
-                    key={preset.name}
-                    type="button"
-                    aria-pressed={values.name === preset.name}
-                    onClick={() => {
-                      const tunnel = preset.local && !localModels;
-                      setValues((current) => ({
-                        ...current,
-                        name: preset.name,
-                        baseUrl: tunnel ? "" : preset.baseUrl,
-                        model: preset.model,
-                      }));
-                      setNeedsTunnel(tunnel);
-                      setTest(null);
-                    }}
-                    className={cn(
-                      "rounded-sm border px-2.5 py-1.5 text-xs transition-colors",
-                      values.name === preset.name
-                        ? "border-silver-300 bg-ink-850 text-paper"
-                        : "border-line text-silver-300 hover:border-line-strong hover:text-paper",
-                    )}
-                  >
-                    {preset.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          <Field id={ids.name} label="Name">
-            <Input
-              id={ids.name}
-              name="name"
-              required
-              maxLength={60}
-              value={values.name}
-              onChange={set("name")}
-            />
-          </Field>
-          <Field
-            id={ids.url}
-            label="Base URL"
-            hint={
-              needsTunnel ? tunnelHint : "For example https://api.openai.com/v1"
-            }
-          >
-            <Input
-              id={ids.url}
-              name="baseUrl"
-              type="url"
-              required
-              pattern="https?://.+"
-              title="Starts with http:// or https://"
-              value={values.baseUrl}
-              onChange={set("baseUrl")}
-              aria-describedby={`${ids.url}-hint`}
-              className="font-mono"
-            />
-          </Field>
-          <Field
-            id={ids.key}
-            label="API key"
-            hint={
-              editing && provider?.hasApiKey
-                ? "A key is stored (encrypted). Leave empty to keep it. Enter it again if you change the base URL."
-                : "Stored encrypted. Leave empty for local servers like LM Studio or Ollama."
-            }
-          >
-            <Input
-              id={ids.key}
-              name="apiKey"
-              type="password"
-              autoComplete="off"
-              maxLength={500}
-              value={values.apiKey}
-              onChange={set("apiKey")}
-              aria-describedby={`${ids.key}-hint`}
-              className="font-mono"
-            />
-          </Field>
-          <Field id={ids.model} label="Model">
-            <Input
-              id={ids.model}
-              name="model"
-              required
-              maxLength={100}
-              list={ids.models}
-              value={values.model}
-              onChange={set("model")}
-              className="font-mono"
-            />
-            {/* Native autocomplete from the models the test connection found. */}
-            <datalist id={ids.models}>
-              {test?.models.map((model) => (
-                <option key={model} value={model} />
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={editing ? `Edit ${provider?.name}` : "Add a provider"}
+      description="Any OpenAI-compatible API works. Nothing is hardcoded."
+    >
+      <form action={formAction} className="space-y-5">
+        <FormError message={state.error} />
+        {!editing && (
+          <div>
+            <p className="mb-2 font-mono text-[11px] tracking-label text-silver-500 uppercase">
+              Start from
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {PROVIDER_PRESETS.map((preset) => (
+                <button
+                  key={preset.name}
+                  type="button"
+                  aria-pressed={values.name === preset.name}
+                  onClick={() => {
+                    const tunnel = preset.local && !localModels;
+                    setValues((current) => ({
+                      ...current,
+                      name: preset.name,
+                      baseUrl: tunnel ? "" : preset.baseUrl,
+                      model: preset.model,
+                    }));
+                    setNeedsTunnel(tunnel);
+                    setTest(null);
+                  }}
+                  className={cn(
+                    "rounded-sm border px-2.5 py-1.5 text-xs transition-colors",
+                    values.name === preset.name
+                      ? "border-silver-300 bg-ink-850 text-paper"
+                      : "border-line text-silver-300 hover:border-line-strong hover:text-paper",
+                  )}
+                >
+                  {preset.name}
+                </button>
               ))}
-            </datalist>
-          </Field>
+            </div>
+          </div>
+        )}
+        <Field id={ids.name} label="Name">
+          <Input
+            id={ids.name}
+            name="name"
+            required
+            maxLength={60}
+            value={values.name}
+            onChange={set("name")}
+          />
+        </Field>
+        <Field
+          id={ids.url}
+          label="Base URL"
+          hint={
+            needsTunnel ? tunnelHint : "For example https://api.openai.com/v1"
+          }
+        >
+          <Input
+            id={ids.url}
+            name="baseUrl"
+            type="url"
+            required
+            pattern="https?://.+"
+            title="Starts with http:// or https://"
+            value={values.baseUrl}
+            onChange={set("baseUrl")}
+            aria-describedby={`${ids.url}-hint`}
+            className="font-mono"
+          />
+        </Field>
+        <Field
+          id={ids.key}
+          label="API key"
+          hint={
+            editing && provider?.hasApiKey
+              ? "A key is stored (encrypted). Leave empty to keep it. Enter it again if you change the base URL."
+              : "Stored encrypted. Leave empty for local servers like LM Studio or Ollama."
+          }
+        >
+          <Input
+            id={ids.key}
+            name="apiKey"
+            type="password"
+            autoComplete="off"
+            maxLength={500}
+            value={values.apiKey}
+            onChange={set("apiKey")}
+            aria-describedby={`${ids.key}-hint`}
+            className="font-mono"
+          />
+        </Field>
+        <Field id={ids.model} label="Model">
+          <Input
+            id={ids.model}
+            name="model"
+            required
+            maxLength={100}
+            list={ids.models}
+            value={values.model}
+            onChange={set("model")}
+            className="font-mono"
+          />
+          {/* Native autocomplete from the models the test connection found. */}
+          <datalist id={ids.models}>
+            {test?.models.map((model) => (
+              <option key={model} value={model} />
+            ))}
+          </datalist>
+        </Field>
 
-          <div className="flex items-center gap-3">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={runTest}
-              disabled={testing}
+        <div className="flex items-center gap-3">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={runTest}
+            disabled={testing}
+          >
+            {testing ? "Testing…" : "Test connection"}
+          </Button>
+          {test && (
+            <p
+              role="status"
+              className={cn(
+                "flex items-center gap-1.5 text-xs",
+                test.ok ? "text-silver-300" : "text-red",
+              )}
             >
-              {testing ? "Testing…" : "Test connection"}
-            </Button>
-            {test && (
-              <p
-                role="status"
-                className={cn(
-                  "flex items-center gap-1.5 text-xs",
-                  test.ok ? "text-silver-300" : "text-red",
-                )}
-              >
-                {test.ok ? (
-                  <Check aria-hidden className="size-3.5" strokeWidth={1.5} />
-                ) : (
-                  <CircleAlert
-                    aria-hidden
-                    className="size-3.5"
-                    strokeWidth={1.5}
-                  />
-                )}
-                {test.message}
-              </p>
-            )}
-          </div>
+              {test.ok ? (
+                <Check aria-hidden className="size-3.5" strokeWidth={1.5} />
+              ) : (
+                <CircleAlert
+                  aria-hidden
+                  className="size-3.5"
+                  strokeWidth={1.5}
+                />
+              )}
+              {test.message}
+            </p>
+          )}
+        </div>
 
-          <div className="flex justify-end gap-2 border-t border-line pt-5">
-            <Button variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : "Save provider"}
-            </Button>
-          </div>
-        </form>
-      </Dialog>
-    </>
+        <div className="flex justify-end gap-2 border-t border-line pt-5">
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={pending}>
+            {pending ? "Saving…" : "Save provider"}
+          </Button>
+        </div>
+      </form>
+    </Dialog>
   );
 }
