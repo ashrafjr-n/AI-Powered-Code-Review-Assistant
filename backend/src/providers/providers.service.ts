@@ -13,6 +13,7 @@ import {
   parseKey,
 } from '../common/secret-box.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { MAX_REVIEW_CHARS } from '../reviews/review-prompt.js';
 import { demoBusyError, DemoService } from './demo.service.js';
 import {
   assertSafeBaseUrl,
@@ -174,6 +175,20 @@ export class ProvidersService {
           data: { isDefault: true },
         });
     });
+  }
+
+  /**
+   * How many characters of code one review may send. The demo's size comes from env
+   * (a large-context model); an own provider keeps the safe default, because we can't
+   * know its context size (a local model may have only 4k tokens).
+   */
+  async reviewBudget(userId: string): Promise<number> {
+    const own = await this.prisma.aiProvider.count({
+      where: { userId, isDefault: true },
+    });
+    return own === 0
+      ? (this.demo.config()?.maxChars ?? MAX_REVIEW_CHARS)
+      : MAX_REVIEW_CHARS;
   }
 
   /** Can this server call models on localhost / private networks (self-hosted, dev)? */

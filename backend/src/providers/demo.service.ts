@@ -4,7 +4,9 @@ import { PrismaService } from '../prisma/prisma.service.js';
 // The built-in demo model: lets people try Redline before adding their own key.
 // Configured only by env (the key never touches the database or the browser):
 //   DEMO_BASE_URL, DEMO_MODEL, DEMO_API_KEY (optional), DEMO_NAME (optional),
-//   DEMO_DAILY_LIMIT_PER_USER (default 10), DEMO_DAILY_LIMIT_TOTAL (default 200).
+//   DEMO_DAILY_LIMIT_PER_USER (default 10), DEMO_DAILY_LIMIT_TOTAL (default 200),
+//   DEMO_MAX_CHARS (default 160000: how much code one review may send; the demo is a
+//   large-context model, so whole projects fit better than with the 48k default).
 
 export interface DemoConfig {
   name: string;
@@ -13,6 +15,8 @@ export interface DemoConfig {
   apiKey: string | null;
   perUser: number;
   total: number;
+  /** Review budget in characters (see review-prompt.ts MAX_REVIEW_CHARS). */
+  maxChars: number;
 }
 
 export type DemoStatus =
@@ -87,6 +91,7 @@ export class DemoService {
       apiKey: process.env.DEMO_API_KEY || null,
       perUser: Number(process.env.DEMO_DAILY_LIMIT_PER_USER) || 10,
       total: Number(process.env.DEMO_DAILY_LIMIT_TOTAL) || 200,
+      maxChars: Number(process.env.DEMO_MAX_CHARS) || 160_000,
     };
   }
 
