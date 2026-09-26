@@ -71,14 +71,14 @@ function draft(
 
 export async function generateInsight(
   projectId: string,
+  projectName: string,
   kind: InsightKind,
 ): Promise<void> {
   await wait(1200);
-  const project = db.projects.find((candidate) => candidate.id === projectId);
   const paths = (db.files.get(projectId) ?? []).map((file) => file.path);
   const insight: Insight = {
     kind,
-    content: draft(kind, project?.name ?? "Project", paths),
+    content: draft(kind, projectName, paths),
     createdAt: new Date().toISOString(),
   };
   const others = (db.insights.get(projectId) ?? []).filter(

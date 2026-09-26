@@ -31,16 +31,18 @@ export async function getReview(id: string): Promise<Review | null> {
 }
 
 // Search matches the summary, issue titles, file paths and the project name.
+// `projects` = the user's real projects (from the API); reviews of other projects are hidden.
 export async function listReviews(
   filters: ReviewFilters,
+  projects: { id: string; name: string }[],
 ): Promise<ReviewListItem[]> {
   const q = filters.q?.trim().toLowerCase();
+  const names = new Map(projects.map((project) => [project.id, project.name]));
   return db.reviews
+    .filter((review) => names.has(review.projectId))
     .map((review) => ({
       ...review,
-      projectName:
-        db.projects.find((project) => project.id === review.projectId)?.name ??
-        "Deleted project",
+      projectName: names.get(review.projectId) ?? "",
     }))
     .filter((review) => !filters.mode || review.mode === filters.mode)
     .filter(
@@ -73,9 +75,8 @@ export async function runReview(input: {
   filePaths: string[];
 }): Promise<Review> {
   await wait(1500);
-  const known = db.reviews.filter(
-    (review) =>
-      review.projectId === input.projectId && review.mode === input.mode,
+  const known = db.reviewTemplates.filter(
+    (review) => review.mode === input.mode,
   );
   const issues = known
     .flatMap((review) => review.issues)

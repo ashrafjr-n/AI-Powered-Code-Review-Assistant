@@ -10,41 +10,13 @@ import type {
 } from "@/lib/types";
 import { crmFiles, lineOf, portfolioFiles } from "./sample-code";
 
-export interface ProjectRow {
-  id: string;
-  name: string;
-  description: string;
-  createdAt: string;
-}
-
 export const db = {
-  projects: [
-    {
-      id: "p-crm",
-      name: "CRM Backend",
-      description: "Express + PostgreSQL API for contacts, deals and invoices.",
-      createdAt: "2026-09-24T10:02:00.000Z",
-    },
-    {
-      id: "p-portfolio",
-      name: "Portfolio Website",
-      description: "Next.js personal site with a blog and a contact form.",
-      createdAt: "2026-09-22T15:40:00.000Z",
-    },
-    {
-      id: "p-dashboard",
-      name: "Internal Dashboard",
-      description: "",
-      createdAt: "2026-09-20T08:15:00.000Z",
-    },
-  ] as ProjectRow[],
+  files: new Map<string, ProjectFile[]>(),
 
-  files: new Map<string, ProjectFile[]>([
-    ["p-crm", crmFiles],
-    ["p-portfolio", portfolioFiles],
-  ]),
+  reviews: [] as Review[],
 
-  reviews: [
+  // Issue templates the mock review engine picks from (matched by lens + file path).
+  reviewTemplates: [
     {
       id: "r-crm-security",
       projectId: "p-crm",
@@ -199,30 +171,7 @@ export const db = {
     },
   ] as Review[],
 
-  chats: [
-    {
-      id: "c-crm-1",
-      projectId: "p-crm",
-      title: "Which file handles database connections?",
-      createdAt: "2026-09-26T09:30:00.000Z",
-      messages: [
-        {
-          id: "m1",
-          role: "USER",
-          content: "Which file handles database connections?",
-          createdAt: "2026-09-26T09:30:00.000Z",
-        },
-        {
-          id: "m2",
-          role: "ASSISTANT",
-          content:
-            "Database connections live in src/db/pool.ts. It creates one shared pg.Pool from DATABASE_URL (max 10 connections) and exports a query() helper. Every route and service imports query() from there instead of opening its own connection.",
-          sources: ["src/db/pool.ts", "src/routes/users.ts"],
-          createdAt: "2026-09-26T09:30:05.000Z",
-        },
-      ],
-    },
-  ] as ChatSession[],
+  chats: [] as ChatSession[],
 
   insights: new Map<string, Insight[]>(),
 
