@@ -12,14 +12,45 @@ export interface ProjectSummary {
   description: string;
   createdAt: string;
   fileCount: number;
-  /** Highest severity of the latest review; null = clean review; undefined = never reviewed. */
-  lastReview?: { severity: Severity | null; createdAt: string };
+  /** null before the first upload. */
+  uploadStats: UploadStats | null;
+  /** Latest review: highest severity (null = clean) + issues per severity; undefined = never reviewed. */
+  lastReview?: {
+    severity: Severity | null;
+    createdAt: string;
+    counts: Record<Severity, number>;
+  };
 }
 
 /** A file in the tree: the list endpoint never sends content. */
 export interface FileEntry {
   path: string;
   size: number;
+  /** Env/key/credential file: listed, never opened or sent to a model. */
+  sensitive: boolean;
+}
+
+/** What an upload left out, by reason. */
+export interface SkipCounts {
+  /** Dependencies, build output, caches, lock files, generated files. */
+  ignored: number;
+  binary: number;
+  tooLarge: number;
+}
+
+export interface UploadStats {
+  kept: number;
+  sensitive: number;
+  skipped: SkipCounts;
+  /** Secrets inside code replaced with ‹redacted›. */
+  redacted: number;
+}
+
+/** Before a whole-project review: how many readable files fit the budget. */
+export interface ReviewPlan {
+  total: number;
+  fits: number;
+  hidden: number;
 }
 
 export interface ProjectFile extends FileEntry {

@@ -13,12 +13,18 @@ test("slimZip keeps source files and drops dependencies, build output and binari
     "shop/.vite/deps/react.js": strToU8("cache"),
     "shop/public/app.min.js": strToU8("x"),
     "shop/logo.png": new Uint8Array([137, 80, 78, 71, 0, 1]),
+    "shop/.env": strToU8("STRIPE_SECRET=do-not-upload"),
   });
 
   const result = slimZip(zip);
   assert.ok(result.ok);
   assert.equal(result.fileCount, 2);
-  assert.deepEqual(Object.keys(unzipSync(result.zip)).sort(), [
+  assert.deepEqual(result.skipped, { ignored: 5, binary: 1, tooLarge: 0 });
+  const uploaded = unzipSync(result.zip);
+  // The .env file is uploaded empty: listed in the tree, secret stays here.
+  assert.equal(uploaded["shop/.env"].length, 0);
+  assert.deepEqual(Object.keys(uploaded).sort(), [
+    "shop/.env",
     "shop/README.md",
     "shop/src/app.ts",
   ]);

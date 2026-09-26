@@ -39,6 +39,8 @@ export function UploadDropzone({ projectId }: UploadDropzoneProps) {
         new Blob([slim.zip], { type: "application/zip" }),
         file.name,
       );
+      // What the browser already left out, for the "N skipped" note in the workspace.
+      body.set("skipped", JSON.stringify(slim.skipped));
       const response = await fetch(
         `/api/projects/${encodeURIComponent(projectId)}/files`,
         { method: "POST", body },
