@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module.js';
+import { ChatModule } from './chat/chat.module.js';
 import { FilesModule } from './files/files.module.js';
 import { HealthController } from './health/health.controller.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -19,6 +20,7 @@ import { ReviewsModule } from './reviews/reviews.module.js';
     FilesModule,
     ProvidersModule,
     ReviewsModule,
+    ChatModule,
   ],
   controllers: [HealthController],
   // Global rate limit for every route (AuthGuard is registered in AuthModule).
