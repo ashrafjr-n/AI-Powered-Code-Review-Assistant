@@ -11,7 +11,7 @@ import { ProjectsService } from '../projects/projects.service.js';
 import { ProvidersService } from '../providers/providers.service.js';
 import { buildChatMessages, HISTORY_MESSAGES } from './chat-prompt.js';
 import type { AskDto } from './chat.schemas.js';
-import { rankFiles } from './retrieval.js';
+import { pickSources } from './retrieval.js';
 
 // Same limit as reviews: answer before the frontend's fetch gives up (300 s).
 const CHAT_TIMEOUT_MS = 270_000;
@@ -88,7 +88,7 @@ export class ChatService {
             messages: {
               orderBy: { createdAt: 'desc' },
               take: HISTORY_MESSAGES,
-              select: { role: true, content: true },
+              select: { role: true, content: true, sources: true },
             },
           },
         })
@@ -106,7 +106,15 @@ export class ChatService {
     if (files.length === 0)
       throw new BadRequestException('Upload the project code first.');
 
-    const sourcePaths = rankFiles(dto.question, readable);
+    const sourcePaths = pickSources({
+      question: dto.question,
+      files: readable,
+      openFile: dto.currentFile,
+      // Newest first: the latest answer's files, for follow-up questions.
+      previous: session?.messages.find(
+        (message) => message.role === 'ASSISTANT',
+      )?.sources,
+    });
     const answer = await this.callModel(userId, {
       projectName: project.name,
       allPaths: files.map((file) => file.path),
@@ -115,6 +123,9 @@ export class ChatService {
       ),
       history: (session?.messages ?? []).reverse(),
       question: dto.question,
+      openFile: sourcePaths.includes(dto.currentFile ?? '')
+        ? dto.currentFile
+        : undefined,
     });
 
     // Explicit times: both rows in one transaction would otherwise share now().
