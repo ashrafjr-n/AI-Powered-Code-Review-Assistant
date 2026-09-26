@@ -1,4 +1,4 @@
-// Shown under the drop zone: what happens to a ZIP, so uploads are predictable.
+// Shown under the drop zone: what happens to uploaded code, so uploads are predictable.
 
 export const uploadRules = [
   {
@@ -19,10 +19,10 @@ export const uploadRules = [
   },
 ];
 
-// "Replace code" in the workspace: a new ZIP replaces every stored file.
+// "Replace code" in the workspace: new code replaces every stored file.
 export const replaceCodeCopy = {
   button: "Replace",
   title: "Upload new code",
   description: (fileCount: number) =>
-    `The new ZIP replaces all ${fileCount} files. Past reviews, chats and docs stay.`,
+    `New code replaces all ${fileCount} files. Past reviews, chats and docs stay.`,
 };

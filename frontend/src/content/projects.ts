@@ -6,7 +6,7 @@ export const projectsCopy = {
   newProject: "New project",
   empty: {
     title: "No projects yet",
-    body: "Create a project, upload a ZIP of your code, and run your first review.",
+    body: "Create a project, upload your code (a folder or a ZIP), and run your first review.",
   },
   createDialog: {
     title: "New project",

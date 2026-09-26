@@ -84,8 +84,8 @@ export interface Step {
 export const steps: Step[] = [
   {
     number: "01",
-    title: "Upload a ZIP",
-    body: "Drop your project. Dependencies, build output and binaries are skipped, and secret files like .env never leave your browser, so only real source code is stored.",
+    title: "Upload your code",
+    body: "Drop a project folder or a ZIP. Dependencies, build output and binaries are skipped, and secret files like .env never leave your browser, so only real source code is stored.",
   },
   {
     number: "02",
