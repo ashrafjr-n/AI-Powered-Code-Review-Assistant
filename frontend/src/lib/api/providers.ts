@@ -13,6 +13,11 @@ export const listProviders = cache((): Promise<AiProvider[]> =>
   apiFetch<AiProvider[]>("/providers"),
 );
 
+/** Can this server reach models on localhost (self-hosted) or not (public server)? */
+export const getProviderOptions = cache((): Promise<{ localModels: boolean }> =>
+  apiFetch<{ localModels: boolean }>("/providers/options"),
+);
+
 /** cache(): the pill and the settings card share one request. */
 export const getDemoStatus = cache((): Promise<DemoStatus> =>
   apiFetch<DemoStatus>("/providers/demo"),

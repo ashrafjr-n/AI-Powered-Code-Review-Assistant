@@ -6,14 +6,20 @@ import { ProviderFormDialog } from "@/components/settings/provider-form-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { providerLocation } from "@/lib/providers";
-import { getDemoStatus, listProviders } from "@/lib/api/providers";
+import {
+  getDemoStatus,
+  getProviderOptions,
+  listProviders,
+} from "@/lib/api/providers";
+import { emptyProvidersBody, localModelsNote } from "@/content/providers";
 
 export const metadata: Metadata = { title: "Model providers" };
 
 export default async function ProvidersPage() {
-  const [providers, demo] = await Promise.all([
+  const [providers, demo, options] = await Promise.all([
     listProviders(),
     getDemoStatus(),
+    getProviderOptions(),
   ]);
 
   return (
@@ -21,7 +27,11 @@ export default async function ProvidersPage() {
       <PageHeader
         title="Model providers"
         description="Choose which model reviews your code. Any OpenAI-compatible API works."
-        actions={providers.length > 0 ? <ProviderFormDialog /> : undefined}
+        actions={
+          providers.length > 0 ? (
+            <ProviderFormDialog localModels={options.localModels} />
+          ) : undefined
+        }
       />
 
       {demo.enabled && (
@@ -39,8 +49,8 @@ export default async function ProvidersPage() {
         <EmptyState
           icon={Cpu}
           title="No model of your own yet"
-          body="Add Gemini or Groq with a free API key, OpenAI, or point Redline at LM Studio or Ollama running on your machine."
-          action={<ProviderFormDialog />}
+          body={emptyProvidersBody}
+          action={<ProviderFormDialog localModels={options.localModels} />}
         />
       ) : (
         <ul className="space-y-3">
@@ -73,7 +83,10 @@ export default async function ProvidersPage() {
                 </p>
               </div>
               <div className="flex items-center gap-1">
-                <ProviderFormDialog provider={provider} />
+                <ProviderFormDialog
+                  provider={provider}
+                  localModels={options.localModels}
+                />
                 <ProviderActions
                   id={provider.id}
                   name={provider.name}
@@ -91,8 +104,9 @@ export default async function ProvidersPage() {
           className="mt-0.5 size-4 shrink-0"
           strokeWidth={1.5}
         />
-        Local providers (LM Studio, Ollama) work when you run Redline on your
-        own machine. A hosted server can&apos;t reach your localhost.
+        {options.localModels
+          ? localModelsNote.selfHosted
+          : localModelsNote.hosted}
       </p>
     </div>
   );

@@ -13,15 +13,21 @@ import { Field } from "@/components/ui/field";
 import { FormError } from "@/components/ui/form-error";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
+import { tunnelHint } from "@/content/providers";
 import { PROVIDER_PRESETS } from "@/lib/providers";
 import type { AiProvider, ConnectionResult } from "@/lib/types";
 
 interface ProviderFormDialogProps {
   /** Given = edit this provider; missing = add a new one. */
   provider?: AiProvider;
+  /** false on a public server: localhost presets need a tunnel address instead. */
+  localModels: boolean;
 }
 
-export function ProviderFormDialog({ provider }: ProviderFormDialogProps) {
+export function ProviderFormDialog({
+  provider,
+  localModels,
+}: ProviderFormDialogProps) {
   const editing = Boolean(provider);
   // Many of these dialogs live on one page (add + one per provider): ids must be unique.
   const uid = useId();
@@ -41,6 +47,8 @@ export function ProviderFormDialog({ provider }: ProviderFormDialogProps) {
   };
   const [values, setValues] = useState(initialValues);
   const [test, setTest] = useState<ConnectionResult | null>(null);
+  // A local preset picked on a public server: ask for the tunnel's https address.
+  const [needsTunnel, setNeedsTunnel] = useState(false);
   const [testing, startTest] = useTransition();
   const [state, formAction, pending] = useActionState(
     async (previous: ProviderFormState, formData: FormData) => {
@@ -103,18 +111,21 @@ export function ProviderFormDialog({ provider }: ProviderFormDialogProps) {
                   <button
                     key={preset.name}
                     type="button"
-                    aria-pressed={values.baseUrl === preset.baseUrl}
+                    aria-pressed={values.name === preset.name}
                     onClick={() => {
+                      const tunnel = preset.local && !localModels;
                       setValues((current) => ({
                         ...current,
-                        ...preset,
-                        apiKey: current.apiKey,
+                        name: preset.name,
+                        baseUrl: tunnel ? "" : preset.baseUrl,
+                        model: preset.model,
                       }));
+                      setNeedsTunnel(tunnel);
                       setTest(null);
                     }}
                     className={cn(
                       "rounded-sm border px-2.5 py-1.5 text-xs transition-colors",
-                      values.baseUrl === preset.baseUrl
+                      values.name === preset.name
                         ? "border-silver-300 bg-ink-850 text-paper"
                         : "border-line text-silver-300 hover:border-line-strong hover:text-paper",
                     )}
@@ -138,7 +149,9 @@ export function ProviderFormDialog({ provider }: ProviderFormDialogProps) {
           <Field
             id={ids.url}
             label="Base URL"
-            hint="For example http://localhost:1234/v1"
+            hint={
+              needsTunnel ? tunnelHint : "For example https://api.openai.com/v1"
+            }
           >
             <Input
               id={ids.url}
