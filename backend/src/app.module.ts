@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { ChatModule } from './chat/chat.module.js';
 import { FilesModule } from './files/files.module.js';
 import { HealthController } from './health/health.controller.js';
+import { InsightsModule } from './insights/insights.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { ProjectsModule } from './projects/projects.module.js';
 import { ProvidersModule } from './providers/providers.module.js';
@@ -21,6 +22,7 @@ import { ReviewsModule } from './reviews/reviews.module.js';
     ProvidersModule,
     ReviewsModule,
     ChatModule,
+    InsightsModule,
   ],
   controllers: [HealthController],
   // Global rate limit for every route (AuthGuard is registered in AuthModule).
