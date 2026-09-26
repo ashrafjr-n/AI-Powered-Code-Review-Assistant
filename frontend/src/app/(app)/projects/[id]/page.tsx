@@ -15,7 +15,8 @@ import { buildFileTree } from "@/lib/file-tree";
 import { firstParam, parseTab } from "@/lib/workspace-url";
 import { listChatSessions } from "@/mocks/chat";
 import { listInsights } from "@/mocks/insights";
-import { getProject, getProjectFiles } from "@/mocks/projects";
+import { getProject } from "@/lib/api/projects";
+import { getProjectFiles } from "@/mocks/projects";
 import { listProjectReviews } from "@/mocks/reviews";
 
 export async function generateMetadata({

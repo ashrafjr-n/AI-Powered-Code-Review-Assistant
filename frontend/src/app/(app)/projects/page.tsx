@@ -5,7 +5,7 @@ import { ProjectCard } from "@/components/projects/project-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { projectsCopy } from "@/content/projects";
-import { listProjects } from "@/mocks/projects";
+import { listProjects } from "@/lib/api/projects";
 
 export const metadata: Metadata = { title: "Projects" };
 

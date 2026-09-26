@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createProject, deleteProject } from "@/mocks/projects";
+import { createProject, deleteProject } from "@/lib/api/projects";
 
 export interface ProjectFormState {
   ok: boolean;

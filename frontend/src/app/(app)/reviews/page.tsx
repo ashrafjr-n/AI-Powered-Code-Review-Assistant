@@ -10,7 +10,7 @@ import { MODE_LABEL } from "@/lib/labels";
 import { SEVERITY_ORDER } from "@/lib/severity";
 import type { ReviewMode } from "@/lib/types";
 import { firstParam } from "@/lib/workspace-url";
-import { listProjects } from "@/mocks/projects";
+import { listProjects } from "@/lib/api/projects";
 import { listReviews } from "@/mocks/reviews";
 
 export const metadata: Metadata = { title: "Reviews" };
@@ -28,10 +28,8 @@ export default async function ReviewsPage({
   const projectId = firstParam(query.project);
   const filtered = Boolean(q || mode || severity || projectId);
 
-  const [reviews, projects] = await Promise.all([
-    listReviews({ q, mode, severity, projectId }),
-    listProjects(),
-  ]);
+  const projects = await listProjects();
+  const reviews = await listReviews({ q, mode, severity, projectId }, projects);
 
   return (
     <div className="space-y-6">

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { ReviewReport } from "@/components/review/review-report";
 import { MODE_LABEL } from "@/lib/labels";
-import { getProject } from "@/mocks/projects";
+import { getProject } from "@/lib/api/projects";
 import { getReview } from "@/mocks/reviews";
 
 type Props = PageProps<"/projects/[id]/reviews/[reviewId]">;
