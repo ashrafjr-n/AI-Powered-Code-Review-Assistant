@@ -43,7 +43,7 @@ function failure(error: unknown): ActionState {
 
 // ── Review ─────────────────────────────────────────────────────────────
 const MODES = Object.keys(MODE_LABEL) as ReviewMode[];
-const SCOPES: ReviewScope[] = ["FILE", "FILES", "PROJECT"];
+const SCOPES: ReviewScope[] = ["FILE", "FILES", "PROJECT", "DIFF"];
 
 export async function runReviewAction(
   projectId: string,
@@ -62,6 +62,12 @@ export async function runReviewAction(
     filePaths = formData.getAll("files").map(String);
     if (filePaths.length === 0)
       return { error: "Tick at least one file in the tree." };
+  } else if (scope === "DIFF") {
+    const before = String(formData.get("before") ?? "");
+    const after = String(formData.get("after") ?? "");
+    if (!before || !after) return { error: "Pick the before and after files." };
+    if (before === after) return { error: "Pick two different files." };
+    filePaths = [before, after];
   } else if (scope === "FILE") {
     const current = String(formData.get("currentFile") ?? "");
     if (!current) return { error: "Open a file first." };
