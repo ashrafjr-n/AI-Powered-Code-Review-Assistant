@@ -275,8 +275,8 @@ Key points:
 - **Errors are specific.** A model or network failure returns 502, a used-up demo 429 (`DEMO_LIMIT`), a busy demo 503 (`DEMO_BUSY`). The UI shows a help panel for the demo cases instead of a red error.
 
 Chat and insights follow the same path (`findOwned` → readable files → `useProvider` → save on success):
-- **Chat** ranks files by keywords (a path match counts more than a content match) and sends the top 3, plus the list of all paths and the last 6 messages. The model is called first; the question and answer are saved together in one transaction, so a failed call leaves nothing half saved.
-- **Insights** rank files per document kind (for example, routes first for API docs) within 40k characters. They tell the model to write "not found in the code" instead of guessing. One document per kind is kept (upsert).
+- **Chat** sends up to 3 files (`pickSources()`): the file open in the workspace first ("explain this file"), then keyword matches (a path match counts more than a content match); when no word matches, the files of the previous answer (follow-ups). Plus the list of all paths and the last 6 messages. The model is called first; the question and answer are saved together in one transaction, so a failed call leaves nothing half saved.
+- **Insights** rank files per document kind (for example, routes first for API docs) within 40k characters. The model sees every path but only some files, so it is told to write "not in the files I read" instead of guessing, and the document shows which files it read. One document per kind is kept (upsert).
 
 ## 7. AI providers and the demo model
 
