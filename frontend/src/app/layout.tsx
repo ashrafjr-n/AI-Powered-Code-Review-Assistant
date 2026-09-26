@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     template: "%s · Redline",
   },
   description:
-    "Upload a project, pick a Security, Performance or Quality lens, and get a structured review from OpenAI or a model running on your own machine.",
+    "Upload a project, pick a Security, Performance or Quality lens, and get a structured review from a free built-in model, your own API key, or a model on your own computer.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

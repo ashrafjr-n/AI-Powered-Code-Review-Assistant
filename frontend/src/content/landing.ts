@@ -22,7 +22,7 @@ export const hero = {
   eyebrow: "AI code review · local or cloud",
   title: "Code review, on your terms.",
   subtitle:
-    "Upload a project, choose a Security, Performance or Quality lens, and get a structured report from OpenAI, or from a model running on your own machine.",
+    "Upload a project, choose a Security, Performance or Quality lens, and get a structured report. Start with the free built-in model, then connect your own: OpenAI, Gemini, or a model on your own computer.",
   primaryCta: { label: "Start reviewing", href: "/register" },
   secondaryCta: { label: "See a sample report", href: "#sample-report" },
 };
@@ -85,7 +85,7 @@ export const steps: Step[] = [
   {
     number: "01",
     title: "Upload a ZIP",
-    body: "Drop your project. Dependencies, build output and binary files are skipped, so only real source code is stored.",
+    body: "Drop your project. Dependencies, build output and binaries are skipped, and secret files like .env never leave your browser, so only real source code is stored.",
   },
   {
     number: "02",
@@ -145,22 +145,32 @@ export interface Provider {
 }
 
 export const providers: Provider[] = [
-  { name: "LM Studio", baseUrl: "http://localhost:1234/v1", location: "Local" },
-  { name: "Ollama", baseUrl: "http://localhost:11434/v1", location: "Local" },
   { name: "OpenAI", baseUrl: "https://api.openai.com/v1", location: "Cloud" },
+  {
+    name: "Gemini",
+    baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+    location: "Cloud",
+  },
+  {
+    name: "Groq",
+    baseUrl: "https://api.groq.com/openai/v1",
+    location: "Cloud",
+  },
   {
     name: "OpenRouter",
     baseUrl: "https://openrouter.ai/api/v1",
     location: "Cloud",
   },
+  { name: "LM Studio", baseUrl: "http://localhost:1234/v1", location: "Local" },
+  { name: "Ollama", baseUrl: "http://localhost:11434/v1", location: "Local" },
   { name: "Any compatible API", baseUrl: "https://…/v1", location: "Cloud" },
 ];
 
 export const models = {
   title: "Bring your own model.",
-  body: "Redline speaks the OpenAI-compatible API, so any provider works. You set the base URL, the key and the model. Nothing is hardcoded.",
+  body: "Redline speaks the OpenAI-compatible API, so any provider works. You set the base URL, the key and the model. Nothing is hardcoded. New accounts can start right away with a free built-in model and a daily limit.",
   localNote:
-    "With a local model, your code never leaves your machine. No key, no upload to a third party.",
+    "Local models (LM Studio, Ollama) run on your own computer. Connect one through a secure tunnel, or run Redline yourself: then your code never leaves your machine.",
 };
 
 export const finalCta = {
