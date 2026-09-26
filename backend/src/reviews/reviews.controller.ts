@@ -32,6 +32,15 @@ export class ReviewsController {
     return this.reviews.run(userId, id, dto);
   }
 
+  /** How many files a whole-project review would send (shown before running it). */
+  @Get('projects/:id/reviews/plan')
+  plan(
+    @CurrentUserId() userId: string,
+    @Param('id', new ParseUUIDPipe({ version: '7' })) id: string,
+  ): Promise<{ total: number; fits: number; hidden: number }> {
+    return this.reviews.plan(userId, id);
+  }
+
   @Get('reviews')
   list(
     @CurrentUserId() userId: string,

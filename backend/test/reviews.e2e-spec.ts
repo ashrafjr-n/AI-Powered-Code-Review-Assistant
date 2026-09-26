@@ -130,6 +130,10 @@ describe('Reviews (e2e)', () => {
       .send({ name: 'Fake', baseUrl: fakeUrl, model: 'fake-coder' })
       .expect(201);
 
+    // Before running: 3 readable files fit, 1 hidden (.env).
+    const plan = await owner.get(`${run}/plan`).expect(200);
+    expect(plan.body).toEqual({ total: 3, fits: 3, hidden: 1 });
+
     // First reply is not JSON → the engine asks again and accepts the second.
     replies = ['Sure! Here is my review: it looks fine.', goodReply];
     prompts.length = 0;
@@ -147,7 +151,8 @@ describe('Reviews (e2e)', () => {
     expect(review).toMatchObject({
       mode: 'SECURITY',
       scope: 'PROJECT',
-      filePaths: ['README.md', 'src/app.ts', 'src/config.ts'],
+      // Source code first, docs last.
+      filePaths: ['src/app.ts', 'src/config.ts', 'README.md'],
       highestSeverity: 'CRITICAL',
       providerName: 'Fake',
       model: 'fake-coder',

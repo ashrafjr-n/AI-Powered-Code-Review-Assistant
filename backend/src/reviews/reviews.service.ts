@@ -20,6 +20,7 @@ import {
 import {
   buildReviewMessages,
   pickFiles,
+  rankForReview,
   type SourceFile,
 } from './review-prompt.js';
 import type { ListReviewsQuery, RunReviewDto } from './reviews.schemas.js';
@@ -77,24 +78,29 @@ export class ReviewsService {
     private readonly providers: ProvidersService,
   ) {}
 
-  async run(
+  /**
+   * Which files a review would read. Shared by run() and plan(), so the number shown
+   * before a review is exactly what will be sent.
+   */
+  private async selectFiles(
     userId: string,
     projectId: string,
-    dto: RunReviewDto,
-  ): Promise<ReviewView> {
+    scope: RunReviewDto['scope'],
+    filePaths: string[],
+  ) {
     const owned = await this.prisma.project.count({
       where: { id: projectId, userId },
     });
     if (owned === 0) throw new NotFoundException('Project not found');
-    if (dto.scope !== 'PROJECT' && dto.filePaths.length === 0)
+    if (scope !== 'PROJECT' && filePaths.length === 0)
       throw new BadRequestException('Pick at least one file.');
 
     // Never trust paths from the browser: only files stored in this project are read.
     const files = await this.prisma.file.findMany({
       where:
-        dto.scope === 'PROJECT'
+        scope === 'PROJECT'
           ? { projectId }
-          : { projectId, path: { in: dto.filePaths } },
+          : { projectId, path: { in: filePaths } },
       orderBy: { path: 'asc' },
       select: { path: true, content: true, sensitive: true },
     });
@@ -109,8 +115,39 @@ export class ReviewsService {
           ? 'These files are hidden for privacy (they usually hold secrets), so they are not reviewed.'
           : 'None of these files are in the project.',
       );
+    const { included, skipped } = pickFiles(rankForReview(readable));
+    return { readable, hiddenPaths, included, skipped };
+  }
 
-    const { included, skipped } = pickFiles(readable);
+  /** Before a whole-project review: how many files fit the model's budget. */
+  async plan(
+    userId: string,
+    projectId: string,
+  ): Promise<{ total: number; fits: number; hidden: number }> {
+    const { readable, included, hiddenPaths } = await this.selectFiles(
+      userId,
+      projectId,
+      'PROJECT',
+      [],
+    );
+    return {
+      total: readable.length,
+      fits: included.length,
+      hidden: hiddenPaths.length,
+    };
+  }
+
+  async run(
+    userId: string,
+    projectId: string,
+    dto: RunReviewDto,
+  ): Promise<ReviewView> {
+    const { included, skipped, hiddenPaths } = await this.selectFiles(
+      userId,
+      projectId,
+      dto.scope,
+      dto.filePaths,
+    );
     const { provider, output } = await this.providers.useProvider(
       userId,
       async (provider) => ({
