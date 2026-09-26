@@ -319,3 +319,10 @@
     margin: 2em 0;
   }
 }
+
+/* While a workspace pane is being resized (resizable-panes.tsx): one cursor everywhere
+   and no text selection. !important beats the pointer-cursor rule above. */
+html[data-resizing] * {
+  cursor: col-resize !important;
+  user-select: none;
+}
