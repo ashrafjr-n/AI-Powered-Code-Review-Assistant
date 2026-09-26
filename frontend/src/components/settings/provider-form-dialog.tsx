@@ -14,17 +14,11 @@ import { FormError } from "@/components/ui/form-error";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
 import { PROVIDER_PRESETS } from "@/lib/providers";
-import type { AiProvider } from "@/lib/types";
+import type { AiProvider, ConnectionResult } from "@/lib/types";
 
 interface ProviderFormDialogProps {
   /** Given = edit this provider; missing = add a new one. */
   provider?: AiProvider;
-}
-
-interface TestResult {
-  ok: boolean;
-  message: string;
-  models: string[];
 }
 
 export function ProviderFormDialog({ provider }: ProviderFormDialogProps) {
@@ -46,7 +40,7 @@ export function ProviderFormDialog({ provider }: ProviderFormDialogProps) {
     apiKey: "",
   };
   const [values, setValues] = useState(initialValues);
-  const [test, setTest] = useState<TestResult | null>(null);
+  const [test, setTest] = useState<ConnectionResult | null>(null);
   const [testing, startTest] = useTransition();
   const [state, formAction, pending] = useActionState(
     async (previous: ProviderFormState, formData: FormData) => {
@@ -74,6 +68,7 @@ export function ProviderFormDialog({ provider }: ProviderFormDialogProps) {
     const formData = new FormData();
     formData.set("baseUrl", values.baseUrl);
     formData.set("apiKey", values.apiKey);
+    if (provider) formData.set("providerId", provider.id);
     startTest(async () => setTest(await testConnectionAction(formData)));
   }
 
@@ -163,7 +158,7 @@ export function ProviderFormDialog({ provider }: ProviderFormDialogProps) {
             label="API key"
             hint={
               editing && provider?.hasApiKey
-                ? "A key is stored (encrypted). Leave empty to keep it."
+                ? "A key is stored (encrypted). Leave empty to keep it. Enter it again if you change the base URL."
                 : "Stored encrypted. Leave empty for local servers like LM Studio or Ollama."
             }
           >

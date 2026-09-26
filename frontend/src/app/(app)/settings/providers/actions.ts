@@ -1,13 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { ApiError } from "@/lib/api/client";
 import {
   deleteProvider,
   saveProvider,
   setDefaultProvider,
   testConnection,
-  type ConnectionResult,
-} from "@/mocks/providers";
+} from "@/lib/api/providers";
+import type { ConnectionResult } from "@/lib/types";
 
 export interface ProviderFormState {
   ok: boolean;
@@ -52,7 +53,14 @@ export async function saveProviderAction(
   if (input.apiKey.length > 500)
     return { ok: false, error: "That API key is too long." };
 
-  await saveProvider(id, input);
+  // The backend validates again, checks the URL (SSRF guard) and that `id` is yours.
+  try {
+    await saveProvider(id, input);
+  } catch (error) {
+    if (error instanceof ApiError && error.status < 500)
+      return { ok: false, error: error.message };
+    throw error;
+  }
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -60,11 +68,19 @@ export async function saveProviderAction(
 export async function testConnectionAction(
   formData: FormData,
 ): Promise<ConnectionResult> {
-  const { baseUrl } = readForm(formData);
+  const { baseUrl, apiKey } = readForm(formData);
   if (!isHttpUrl(baseUrl)) {
     return { ok: false, message: "Enter a valid base URL first.", models: [] };
   }
-  return testConnection(baseUrl);
+  const providerId = String(formData.get("providerId") ?? "") || undefined;
+  try {
+    return await testConnection({ baseUrl, apiKey, providerId });
+  } catch (error) {
+    // e.g. 429 (10 tests per minute) or 404 (not your provider).
+    if (error instanceof ApiError && error.status < 500)
+      return { ok: false, message: error.message, models: [] };
+    throw error;
+  }
 }
 
 export async function setDefaultProviderAction(id: string): Promise<void> {

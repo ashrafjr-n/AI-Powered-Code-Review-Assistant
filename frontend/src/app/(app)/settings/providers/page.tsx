@@ -5,7 +5,7 @@ import { ProviderFormDialog } from "@/components/settings/provider-form-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { providerLocation } from "@/lib/providers";
-import { listProviders } from "@/mocks/providers";
+import { listProviders } from "@/lib/api/providers";
 
 export const metadata: Metadata = { title: "Model providers" };
 
