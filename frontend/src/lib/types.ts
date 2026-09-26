@@ -4,7 +4,7 @@ export type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 
 export type ReviewMode = "SECURITY" | "PERFORMANCE" | "QUALITY";
 
-export type ReviewScope = "FILE" | "FILES" | "PROJECT";
+export type ReviewScope = "FILE" | "FILES" | "PROJECT" | "DIFF";
 
 export interface ProjectSummary {
   id: string;
@@ -70,7 +70,10 @@ export interface Review {
   projectId: string;
   mode: ReviewMode;
   scope: ReviewScope;
+  /** DIFF: [before, after]. */
   filePaths: string[];
+  /** DIFF only: the unified diff that was reviewed (kept after re-uploads). */
+  diff: string | null;
   summary: string;
   issues: ReviewIssue[];
   recommendations: string[];

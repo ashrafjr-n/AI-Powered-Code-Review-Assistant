@@ -14,6 +14,7 @@ export const sampleReview: Review = {
     "src/routes/auth.ts",
     "src/middleware/errors.ts",
   ],
+  diff: null,
   summary:
     "A small Express API for orders and payments. Authentication is mostly solid, but a live payment key is committed to the repository and one query is built from raw user input. Fix those two before the next deploy; the rest can follow in a normal sprint.",
   issues: [

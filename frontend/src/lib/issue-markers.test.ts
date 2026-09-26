@@ -12,6 +12,7 @@ const review = (
   projectId: "p",
   mode: "SECURITY",
   scope: "FILES",
+  diff: null,
   filePaths,
   summary: "",
   issues,

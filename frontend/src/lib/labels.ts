@@ -10,4 +10,5 @@ export const SCOPE_LABEL: Record<ReviewScope, string> = {
   FILE: "Single file",
   FILES: "Selected files",
   PROJECT: "Whole project",
+  DIFF: "Two-file diff",
 };

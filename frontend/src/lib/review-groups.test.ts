@@ -14,6 +14,7 @@ const review = (
   projectName: `Project ${projectId}`,
   mode: "SECURITY",
   scope: "PROJECT",
+  diff: null,
   filePaths: [],
   summary: "",
   issues: severity ? [{ title: "t", description: "", severity }] : [],
