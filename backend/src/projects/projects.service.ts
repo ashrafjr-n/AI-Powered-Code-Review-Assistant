@@ -93,6 +93,19 @@ export class ProjectsService {
     return toSummary(row);
   }
 
+  /**
+   * The ownership check for every route under /projects/:id (files, reviews, chat,
+   * insights). Another user's project is "not found", so ids reveal nothing.
+   */
+  async findOwned(userId: string, id: string): Promise<{ name: string }> {
+    const project = await this.prisma.project.findFirst({
+      where: { id, userId },
+      select: { name: true },
+    });
+    if (!project) throw new NotFoundException('Project not found');
+    return project;
+  }
+
   async create(userId: string, dto: CreateProjectDto): Promise<ProjectSummary> {
     const row = await this.prisma.project.create({
       data: { ...dto, userId },
