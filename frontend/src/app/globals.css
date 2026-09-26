@@ -281,6 +281,38 @@
     padding-left: 1em;
     color: var(--color-silver-400);
   }
+  /* Tables (remark-gfm): scroll sideways inside the table on small screens,
+     never the page. */
+  .doc-view table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    border-collapse: collapse;
+    margin: 0 0 1em;
+    font-size: 14px;
+  }
+  .doc-view :is(th, td) {
+    border: 1px solid var(--color-line);
+    padding: 0.45em 0.8em;
+    text-align: left;
+    vertical-align: top;
+  }
+  .doc-view th {
+    background: var(--color-ink-850);
+    color: var(--color-paper);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .doc-view del {
+    color: var(--color-silver-500);
+  }
+  .doc-view li:has(> input[type="checkbox"]) {
+    list-style: none;
+  }
+  .doc-view li > input[type="checkbox"] {
+    margin: 0 0.5em 0 -1.4em;
+    accent-color: var(--color-silver-300);
+  }
   .doc-view hr {
     border: 0;
     border-top: 1px solid var(--color-line);
