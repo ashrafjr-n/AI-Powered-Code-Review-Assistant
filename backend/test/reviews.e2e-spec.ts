@@ -309,5 +309,11 @@ describe('Reviews (e2e)', () => {
     await diff(['src/login.ts', 'nope.ts']).expect(400);
     await diff(['src/login.ts', '.env']).expect(400);
     expect(prompts).toHaveLength(1);
+
+    // Typed names are resolved to stored paths.
+    const typed = await diff(['login.ts', './login.v2.ts']).expect(201);
+    expect(typed.body.filePaths).toEqual(['src/login.ts', 'src/login.v2.ts']);
+    const unknown = await diff(['login.ts', 'nope.ts']).expect(400);
+    expect(unknown.body.message).toContain('No file called "nope.ts"');
   });
 });
