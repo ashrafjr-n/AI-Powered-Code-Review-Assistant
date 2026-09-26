@@ -11,7 +11,7 @@ import { SEVERITY_ORDER } from "@/lib/severity";
 import type { ReviewMode } from "@/lib/types";
 import { firstParam } from "@/lib/workspace-url";
 import { listProjects } from "@/lib/api/projects";
-import { listReviews } from "@/mocks/reviews";
+import { listReviews } from "@/lib/api/reviews";
 
 export const metadata: Metadata = { title: "Reviews" };
 
@@ -25,11 +25,12 @@ export default async function ReviewsPage({
     (m) => m === firstParam(query.mode),
   );
   const severity = SEVERITY_ORDER.find((s) => s === firstParam(query.severity));
-  const projectId = firstParam(query.project);
-  const filtered = Boolean(q || mode || severity || projectId);
-
   const projects = await listProjects();
-  const reviews = await listReviews({ q, mode, severity, projectId }, projects);
+  const projectId = projects.find(
+    (project) => project.id === firstParam(query.project),
+  )?.id;
+  const filtered = Boolean(q || mode || severity || projectId);
+  const reviews = await listReviews({ q, mode, severity, projectId });
 
   return (
     <div className="space-y-6">

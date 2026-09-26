@@ -17,7 +17,7 @@ import { listChatSessions } from "@/mocks/chat";
 import { listInsights } from "@/mocks/insights";
 import { getFile, listFiles } from "@/lib/api/files";
 import { getProject } from "@/lib/api/projects";
-import { listProjectReviews } from "@/mocks/reviews";
+import { listReviews } from "@/lib/api/reviews";
 
 export async function generateMetadata({
   params,
@@ -71,7 +71,7 @@ export default async function WorkspacePage({
 
   const [file, reviews, sessions, insights] = await Promise.all([
     getFile(id, selected.path),
-    listProjectReviews(id),
+    listReviews({ projectId: id }),
     listChatSessions(id),
     listInsights(id),
   ]);
