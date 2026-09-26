@@ -1,26 +1,68 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Redline design tokens. Rules and reasons: black / white / silver, red is budgeted (4 uses). */
+@theme {
+  /* Ink: backgrounds and surfaces, darkest to lightest */
+  --color-ink-950: #07080a;
+  --color-ink-900: #0c0d10;
+  --color-ink-850: #121418;
+  --color-ink-800: #1a1d22;
+
+  /* Hairlines */
+  --color-line: #23262d;
+  --color-line-strong: #33373f;
+
+  /* Silver: text and metal accents, dim to bright */
+  --color-silver-500: #6e737d;
+  --color-silver-400: #8d929b;
+  --color-silver-300: #b4b8bf;
+  --color-silver-200: #d5d8dc;
+
+  /* Paper: headings, primary button, the one light surface */
+  --color-paper: #f4f5f6;
+
+  /* The red pen. Only for: logo, CRITICAL, destructive confirm, errors. */
+  --color-red: #e5484d;
+
+  --font-sans: var(--font-schibsted), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+
+  --tracking-display: -0.03em;
+  --tracking-label: 0.08em;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    color-scheme: dark;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  body {
+    background-color: var(--color-ink-950);
+    color: var(--color-silver-300);
+  }
+
+  ::selection {
+    background-color: var(--color-silver-200);
+    color: var(--color-ink-950);
+  }
+
+  /* One visible focus style for every interactive element. */
+  :focus-visible {
+    outline: 2px solid var(--color-paper);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
