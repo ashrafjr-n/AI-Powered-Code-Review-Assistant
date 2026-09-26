@@ -12,7 +12,7 @@ describe('assertSafeBaseUrl', () => {
 
   it.each(blocked)('blocks %s on a hosted server', async (url) => {
     await expect(assertSafeBaseUrl(url, false)).rejects.toThrow(
-      'private network',
+      'local or private addresses',
     );
   });
 

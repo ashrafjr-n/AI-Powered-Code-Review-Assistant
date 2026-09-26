@@ -36,6 +36,12 @@ export class ProvidersController {
     return this.providers.list(userId);
   }
 
+  /** What this server can do, so the UI can explain local models correctly. */
+  @Get('options')
+  options(): { localModels: boolean } {
+    return { localModels: this.providers.canReachLocalModels() };
+  }
+
   /** The built-in demo model and how much of today's allowance this user has left. */
   @Get('demo')
   demoStatus(@CurrentUserId() userId: string): Promise<DemoStatus> {

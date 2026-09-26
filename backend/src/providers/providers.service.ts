@@ -72,7 +72,8 @@ function toView({
 @Injectable()
 export class ProvidersService {
   private readonly key = parseKey(requireEnv('ENCRYPTION_KEY'));
-  // Only local development may call localhost / private networks (SSRF guard).
+  // Only self-hosted or development servers (ALLOW_LOCAL_PROVIDERS=true) may call
+  // localhost / private networks. A public server must not (SSRF guard).
   private readonly allowLocal = process.env.ALLOW_LOCAL_PROVIDERS === 'true';
 
   constructor(
@@ -173,6 +174,11 @@ export class ProvidersService {
           data: { isDefault: true },
         });
     });
+  }
+
+  /** Can this server call models on localhost / private networks (self-hosted, dev)? */
+  canReachLocalModels(): boolean {
+    return this.allowLocal;
   }
 
   /**

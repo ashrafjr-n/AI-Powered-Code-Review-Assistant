@@ -61,7 +61,7 @@ export async function assertSafeBaseUrl(
     )
   )
     throw new ProviderError(
-      'Local and private network addresses are blocked on the hosted server. Run Redline on your machine to use LM Studio or Ollama.',
+      "This server can't reach local or private addresses (like localhost). For a model on your own computer, give it a public https address with a secure tunnel (for example Cloudflare Tunnel or ngrok), or run Redline yourself.",
     );
 }
 
