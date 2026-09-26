@@ -29,7 +29,10 @@ export default function LandingPage() {
     <>
       <SiteHeader links={navLinks} />
       {/* The container's side borders are the page's visible column guides. */}
-      <main className="mx-auto w-full max-w-[1200px] border-x border-line">
+      <main
+        id="main"
+        className="mx-auto w-full max-w-[1200px] border-x border-line"
+      >
         <Hero {...hero} providerNames={providerNames} editor={heroEditor} />
         <HowItWorks steps={steps} />
         <Lenses lenses={lenses} />
