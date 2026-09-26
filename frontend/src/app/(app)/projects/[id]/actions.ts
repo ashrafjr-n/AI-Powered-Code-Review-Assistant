@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { askQuestion } from "@/lib/api/chat";
 import { ApiError } from "@/lib/api/client";
-import { getProject } from "@/lib/api/projects";
+import { generateInsight } from "@/lib/api/insights";
 import { runReview } from "@/lib/api/reviews";
 import { MODE_LABEL } from "@/lib/labels";
 import type {
@@ -14,7 +14,6 @@ import type {
   ReviewScope,
 } from "@/lib/types";
 import { workspaceHref } from "@/lib/workspace-url";
-import { generateInsight } from "@/mocks/insights";
 
 export interface ActionState {
   error?: string;
@@ -134,11 +133,23 @@ export async function generateInsightAction(
   _previous: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const project = await getProject(projectId);
-  if (!project) return NOT_YOURS;
   const kind = INSIGHT_KINDS.find((value) => value === formData.get("kind"));
   if (!kind) return { error: "Pick what to generate." };
-  await generateInsight(projectId, project.name, kind);
-  revalidatePath(`/projects/${projectId}`);
+
+  // The backend checks the project is yours and counts demo requests.
+  try {
+    await generateInsight(projectId, kind);
+  } catch (error) {
+    const demo = error instanceof ApiError ? demoNotice(error) : undefined;
+    if (demo) return { demo };
+    if (
+      error instanceof ApiError &&
+      (error.status < 500 || error.status === 502)
+    )
+      return { error: error.status === 404 ? NOT_YOURS.error : error.message };
+    throw error;
+  }
+  // Layout too: the provider pill shows how many demo requests are left.
+  revalidatePath("/", "layout");
   return {};
 }

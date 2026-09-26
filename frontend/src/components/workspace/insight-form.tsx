@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import type { ReactNode } from "react";
 import { generateInsightAction } from "@/app/(app)/projects/[id]/actions";
+import { DemoLimitPanel } from "@/components/app/demo-limit-panel";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
 
@@ -21,6 +22,7 @@ export function InsightForm({ projectId, label, children }: InsightFormProps) {
 
   return (
     <form action={formAction} className="space-y-3">
+      {state.demo && <DemoLimitPanel notice={state.demo} />}
       <FormError message={state.error} />
       <div className="flex gap-2">
         {children}
