@@ -1,9 +1,10 @@
 import Link from "next/link";
-import type { ActiveProvider } from "@/mocks/session";
 import { cn } from "@/lib/cn";
+import { providerLocation } from "@/lib/providers";
+import type { AiProvider } from "@/lib/types";
 
 interface ProviderPillProps {
-  provider: ActiveProvider | null;
+  provider: AiProvider | null;
 }
 
 // Always visible: which model reviews your code, and whether it runs locally.
@@ -27,7 +28,7 @@ export function ProviderPill({ provider }: ProviderPillProps) {
             {provider.model}
           </span>
           <span className="border-l border-line pl-2 text-[11px] tracking-label text-silver-500 uppercase">
-            {provider.location}
+            {providerLocation(provider.baseUrl)}
           </span>
         </>
       ) : (

@@ -1,11 +1,12 @@
-import type { ActiveProvider, SessionUser } from "@/mocks/session";
+import type { AiProvider } from "@/lib/types";
+import type { SessionUser } from "@/mocks/session";
 import { MobileNav } from "./mobile-nav";
 import { ProviderPill } from "./provider-pill";
 import { UserMenu } from "./user-menu";
 
 interface AppTopbarProps {
   user: SessionUser;
-  provider: ActiveProvider | null;
+  provider: AiProvider | null;
 }
 
 export function AppTopbar({ user, provider }: AppTopbarProps) {
