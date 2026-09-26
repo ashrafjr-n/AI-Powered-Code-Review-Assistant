@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { strToU8, unzipSync, zipSync } from "fflate";
-import { slimZip, zipProblem } from "./upload.ts";
+import { slimFiles, slimZip, zipProblem } from "./upload.ts";
 
 test("slimZip keeps source files and drops dependencies, build output and binaries", () => {
   const zip = zipSync({
@@ -46,4 +46,27 @@ test("zipProblem allows big ZIPs up to 200 MB", () => {
     "The ZIP is larger than 200 MB.",
   );
   assert.equal(zipProblem("a.rar", 10), "Choose a .zip file.");
+});
+
+test("slimFiles applies the same rules to dropped files and folders", async () => {
+  const file = (part: BlobPart) => new Blob([part]);
+  const result = await slimFiles(
+    [
+      { path: "/shop/src/app.ts", file: file("export const a = 1;") },
+      { path: "shop/.env", file: file("STRIPE_SECRET=do-not-upload") },
+      { path: "shop/yarn.lock", file: file("lock") },
+      { path: "shop/logo.png", file: file(new Uint8Array([137, 80, 0])) },
+      { path: "shop/data.json", file: file("x".repeat(600 * 1024)) },
+    ],
+    2, // e.g. node_modules and .next were never opened
+  );
+  assert.ok(result.ok);
+  assert.equal(result.fileCount, 1);
+  assert.deepEqual(result.skipped, { ignored: 3, binary: 1, tooLarge: 1 });
+  const uploaded = unzipSync(result.zip);
+  assert.equal(uploaded["shop/.env"].length, 0);
+  assert.deepEqual(Object.keys(uploaded).sort(), [
+    "shop/.env",
+    "shop/src/app.ts",
+  ]);
 });

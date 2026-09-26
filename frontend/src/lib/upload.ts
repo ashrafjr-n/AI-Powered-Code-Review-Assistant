@@ -75,6 +75,22 @@ function skippedPath(name: string): boolean {
   );
 }
 
+/** Folders never opened (dependencies, build output, caches). */
+export function isSkippedFolder(name: string): boolean {
+  return SKIP_FOLDERS.has(name);
+}
+
+/** The same rules for a ZIP entry and a dropped file, decided before reading it. */
+function classify(
+  path: string,
+  size: number,
+): "keep" | "sensitive" | "ignored" | "tooLarge" {
+  if (skippedPath(path)) return "ignored";
+  if (isSensitivePath(path)) return "sensitive";
+  if (size > MAX_FILE_BYTES) return "tooLarge";
+  return "keep";
+}
+
 const utf8 = new TextDecoder("utf-8", { fatal: true });
 
 function isText(bytes: Uint8Array): boolean {
@@ -98,53 +114,27 @@ export type SlimResult =
   | { ok: false; error: string };
 
 /**
- * Keeps only readable source files and re-zips them. Skipped entries are never
- * inflated, so a huge node_modules costs almost nothing. Sensitive files (.env, keys…)
- * are kept EMPTY: the tree still shows them, their secrets stay on this computer.
+ * The end of every upload: drop binaries, re-zip, check the size.
+ * Sensitive files (.env, keys…) are added EMPTY: the tree still shows them, their
+ * secrets stay on this computer.
  */
-// ponytail: runs on the main thread; move to fflate's async unzip (Web Workers) if
-// big ZIPs make the page freeze.
-export function slimZip(zip: Uint8Array): SlimResult {
-  const skipped: SkipCounts = { ignored: 0, binary: 0, tooLarge: 0 };
-  const sensitive: Record<string, Uint8Array> = {};
-  let entries: Record<string, Uint8Array>;
-  try {
-    entries = unzipSync(zip, {
-      filter: (entry) => {
-        if (entry.name.endsWith("/")) return false;
-        if (skippedPath(entry.name)) {
-          skipped.ignored++;
-          return false;
-        }
-        if (isSensitivePath(entry.name)) {
-          sensitive[entry.name] = new Uint8Array(0);
-          return false;
-        }
-        if (entry.originalSize > MAX_FILE_BYTES) {
-          skipped.tooLarge++;
-          return false;
-        }
-        return true;
-      },
-    });
-  } catch {
-    return { ok: false, error: "This file is not a valid ZIP archive." };
-  }
-
+function pack(
+  candidates: Record<string, Uint8Array>,
+  sensitive: string[],
+  skipped: SkipCounts,
+): SlimResult {
   const kept: Record<string, Uint8Array> = {};
-  for (const [name, bytes] of Object.entries(entries)) {
+  for (const [name, bytes] of Object.entries(candidates)) {
     if (isText(bytes)) kept[name] = bytes;
     else skipped.binary++;
   }
   const fileCount = Object.keys(kept).length;
   if (fileCount === 0)
-    return {
-      ok: false,
-      error: "No readable source files were found in this ZIP.",
-    };
+    return { ok: false, error: "No readable source files were found." };
 
+  for (const name of sensitive) kept[name] = new Uint8Array(0);
   // fflate always allocates a plain ArrayBuffer (never shared), which Blob needs.
-  const slim = zipSync({ ...kept, ...sensitive }) as Uint8Array<ArrayBuffer>;
+  const slim = zipSync(kept) as Uint8Array<ArrayBuffer>;
   if (slim.length > MAX_UPLOAD_BYTES)
     return {
       ok: false,
@@ -152,4 +142,61 @@ export function slimZip(zip: Uint8Array): SlimResult {
         "Your source code is larger than 10 MB, even without dependencies and build output.",
     };
   return { ok: true, zip: slim, fileCount, skipped };
+}
+
+/**
+ * Keeps only readable source files of a ZIP and re-zips them. Skipped entries are
+ * never inflated, so a huge node_modules costs almost nothing.
+ */
+// ponytail: runs on the main thread; move to fflate's async unzip (Web Workers) if
+// big ZIPs make the page freeze.
+export function slimZip(zip: Uint8Array): SlimResult {
+  const skipped: SkipCounts = { ignored: 0, binary: 0, tooLarge: 0 };
+  const sensitive: string[] = [];
+  let entries: Record<string, Uint8Array>;
+  try {
+    entries = unzipSync(zip, {
+      filter: (entry) => {
+        if (entry.name.endsWith("/")) return false;
+        const verdict = classify(entry.name, entry.originalSize);
+        if (verdict === "sensitive") sensitive.push(entry.name);
+        else if (verdict !== "keep") skipped[verdict]++;
+        return verdict === "keep";
+      },
+    });
+  } catch {
+    return { ok: false, error: "This file is not a valid ZIP archive." };
+  }
+  return pack(entries, sensitive, skipped);
+}
+
+/** A file picked or dropped on its own, with its path inside the project. */
+export interface PickedFile {
+  path: string;
+  file: Blob;
+}
+
+/**
+ * Same result as slimZip(), for loose files and folders. Only kept files are read.
+ * `skippedFolders` = folders like node_modules that were never opened.
+ */
+export async function slimFiles(
+  files: PickedFile[],
+  skippedFolders = 0,
+): Promise<SlimResult> {
+  const skipped: SkipCounts = {
+    ignored: skippedFolders,
+    binary: 0,
+    tooLarge: 0,
+  };
+  const sensitive: string[] = [];
+  const candidates: Record<string, Uint8Array> = {};
+  for (const { path, file } of files) {
+    const name = path.replace(/^\/+/, "");
+    const verdict = classify(name, file.size);
+    if (verdict === "sensitive") sensitive.push(name);
+    else if (verdict !== "keep") skipped[verdict]++;
+    else candidates[name] = new Uint8Array(await file.arrayBuffer());
+  }
+  return pack(candidates, sensitive, skipped);
 }
