@@ -2,7 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AUTH_COOKIE } from "@/lib/auth-cookie";
-import { errorMessage } from "./error-message";
+import { readError } from "./error-message";
 
 // Runs only on the Next.js server. The browser never sees BACKEND_URL or the raw token.
 
@@ -10,6 +10,9 @@ export class ApiError extends Error {
   constructor(
     public readonly status: number,
     message: string,
+    /** Backend reason code, e.g. "DEMO_LIMIT". */
+    public readonly code?: string,
+    public readonly resetsAt?: string,
   ) {
     super(message);
   }
@@ -41,8 +44,10 @@ export async function apiFetch<T>(
   });
 
   if (response.status === 401) redirect("/login?expired=1");
-  if (!response.ok)
-    throw new ApiError(response.status, await errorMessage(response));
+  if (!response.ok) {
+    const { message, code, resetsAt } = await readError(response);
+    throw new ApiError(response.status, message, code, resetsAt);
+  }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
