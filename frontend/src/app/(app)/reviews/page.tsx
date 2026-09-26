@@ -63,12 +63,13 @@ export default async function ReviewsPage({
         )}
       </p>
       {reviews.length > 0 ? (
-        <div className="space-y-10">
+        <div className="space-y-3">
           {groups.map((group) => (
             <ProjectReviewSection
               key={group.projectId}
               group={group}
               filteredToProject={Boolean(projectId)}
+              defaultOpen={filtered}
             />
           ))}
         </div>

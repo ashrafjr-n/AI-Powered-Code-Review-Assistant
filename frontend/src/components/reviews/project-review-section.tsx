@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Filter } from "lucide-react";
+import { ArrowRight, ChevronRight, Filter } from "lucide-react";
 import { SeverityBadge } from "@/components/ui/severity-badge";
 import { formatDate } from "@/lib/format";
 import type { ProjectReviewGroup } from "@/lib/review-groups";
@@ -9,40 +9,47 @@ interface ProjectReviewSectionProps {
   group: ProjectReviewGroup;
   /** Hide "only this project" when the list is already filtered to it. */
   filteredToProject: boolean;
+  /** Closed by default; open when the user searched or filtered (they want to see matches). */
+  defaultOpen: boolean;
 }
 
-// One project's reviews: title, how it stands now (latest result), and its reviews.
+// One project's reviews, collapsed to a summary row: name, count, latest result.
+// Native <details>: keyboard and screen-reader support for free, no JavaScript.
 export function ProjectReviewSection({
   group,
   filteredToProject,
+  defaultOpen,
 }: ProjectReviewSectionProps) {
-  const headingId = `reviews-${group.projectId}`;
   const count = group.reviews.length;
   return (
-    <section aria-labelledby={headingId} className="space-y-3">
-      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-        <div className="min-w-0 space-y-1">
-          <h2
-            id={headingId}
-            className="truncate text-base font-medium text-paper"
-          >
-            {group.projectName}
-          </h2>
-          <p className="flex flex-wrap items-center gap-2 font-mono text-xs text-silver-500">
-            <span>
-              {count} {count === 1 ? "review" : "reviews"}
-            </span>
-            <span aria-hidden>·</span>
-            <span>Latest {formatDate(group.latestAt)}</span>
-            <span aria-hidden>·</span>
-            {group.latestSeverity ? (
-              <SeverityBadge severity={group.latestSeverity} />
-            ) : (
-              <span className="tracking-label uppercase">Clean</span>
-            )}
-          </p>
-        </div>
-        <div className="flex items-center gap-4 font-mono text-xs">
+    <details
+      open={defaultOpen}
+      className="group rounded-md border border-line bg-ink-900 open:bg-ink-950"
+    >
+      <summary className="flex list-none flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 transition-colors hover:bg-ink-850 [&::-webkit-details-marker]:hidden">
+        <ChevronRight
+          aria-hidden
+          className="size-4 shrink-0 text-silver-500 transition-transform duration-200 group-open:rotate-90"
+          strokeWidth={1.5}
+        />
+        <h2 className="min-w-0 flex-1 truncate text-base font-medium text-paper">
+          {group.projectName}
+        </h2>
+        <span className="flex flex-wrap items-center gap-2 font-mono text-xs text-silver-500">
+          <span>
+            {count} {count === 1 ? "review" : "reviews"}
+          </span>
+          <span aria-hidden>·</span>
+          <span>Latest {formatDate(group.latestAt)}</span>
+          {group.latestSeverity ? (
+            <SeverityBadge severity={group.latestSeverity} />
+          ) : (
+            <span className="tracking-label uppercase">Clean</span>
+          )}
+        </span>
+      </summary>
+      <div className="space-y-3 border-t border-line p-3 sm:p-4">
+        <div className="flex justify-end gap-4 font-mono text-xs">
           {!filteredToProject && (
             <Link
               href={`/reviews?project=${group.projectId}`}
@@ -60,8 +67,8 @@ export function ProjectReviewSection({
             <ArrowRight aria-hidden className="size-3.5" strokeWidth={1.5} />
           </Link>
         </div>
-      </header>
-      <ReviewList reviews={group.reviews} showProject={false} />
-    </section>
+        <ReviewList reviews={group.reviews} showProject={false} />
+      </div>
+    </details>
   );
 }
