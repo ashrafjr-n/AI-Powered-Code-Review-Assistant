@@ -114,9 +114,10 @@ export async function sendChatAction(
       };
     throw error;
   }
+  // Layout too: the provider pill shows how many demo requests are left.
+  revalidatePath("/", "layout");
   if (id !== sessionId)
     redirect(workspaceHref(projectId, { tab: "chat", chat: id }));
-  revalidatePath(`/projects/${projectId}`);
   return {};
 }
 
