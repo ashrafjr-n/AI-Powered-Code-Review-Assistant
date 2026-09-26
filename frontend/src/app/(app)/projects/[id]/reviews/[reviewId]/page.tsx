@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ReviewReport } from "@/components/review/review-report";
 import { MODE_LABEL } from "@/lib/labels";
+import { SEVERITY_ORDER } from "@/lib/severity";
+import { firstParam } from "@/lib/workspace-url";
 import { getProject } from "@/lib/api/projects";
 import { getReview } from "@/lib/api/reviews";
 
@@ -14,8 +16,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function ReviewPage({ params }: Props) {
+export default async function ReviewPage({ params, searchParams }: Props) {
   const { id, reviewId } = await params;
+  // Only a known severity from the URL is used; anything else shows all issues.
+  const requested = firstParam((await searchParams).severity);
+  const only = SEVERITY_ORDER.find((severity) => severity === requested);
   const [project, review] = await Promise.all([
     getProject(id),
     getReview(reviewId),
@@ -25,7 +30,7 @@ export default async function ReviewPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <ReviewReport review={review} />
+      <ReviewReport review={review} only={only} />
     </div>
   );
 }
