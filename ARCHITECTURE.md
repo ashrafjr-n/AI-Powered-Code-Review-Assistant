@@ -72,6 +72,7 @@ sequenceDiagram
 
 Why:
 - **No CORS and no third-party cookies.** The login cookie belongs to the frontend's own domain, so it works even though Vercel and Render are different domains.
+- **Real users for rate limits.** Every call reaches NestJS from the Next.js server, so the Next.js server sends the user's IP in `X-Client-IP`, signed with a shared `BFF_SECRET`. NestJS trusts that header only when the secret matches.
 - **The token never reaches browser JavaScript.** It lives in an `httpOnly` cookie. `apiFetch()` (server-only) forwards it, and a `401` sends the user to `/login?expired=1`.
 - **One place for data access.** Pages and actions import only `src/lib/api/*`, one module per backend area.
 - `proxy.ts` (the Next.js 16 name for middleware) only checks that a cookie exists, to redirect quickly. The backend's global `AuthGuard` does the real check on every request.
@@ -114,7 +115,7 @@ flowchart TD
 
 Shared setup:
 - **Validation:** Zod schemas via `@Body({ schema })` and the global `StandardSchemaValidationPipe`.
-- **Rate limits:** a global `ThrottlerGuard`, plus stricter limits on auth and AI routes.
+- **Rate limits:** `UserThrottlerGuard` runs right after `AuthGuard` and counts per signed-in user, or per IP when signed out (`clientIp()`). Auth and AI routes have stricter limits.
 - **Configuration:** `requireEnv()` fails fast on missing config. `configureApp()` is shared by `main.ts` and the e2e tests, so the tests run the same app as production.
 
 ## 4. Frontend structure
@@ -139,7 +140,7 @@ frontend/src/
 - **Mutations are Server Actions.** They check input, confirm ownership through the backend, then call `revalidatePath`. Forms use `useActionState` and native HTML validation.
 - **The URL is the state.** The selected file, line, panel tab, chat session and open document (`?file=…&line=…&tab=insights&doc=setup`) all live in the query string, built by `workspaceHref()`. Reload, back/forward and shared links all work.
 - **Code highlighting** runs on the server (Shiki). The HTML is escaped by Shiki, so no user code runs.
-- **Generated documents** are rendered with react-markdown. It builds React elements, ignores raw HTML and removes `javascript:` links.
+- **Generated documents** are rendered with react-markdown + remark-gfm (tables, task lists). It builds React elements, ignores raw HTML and removes `javascript:` links.
 
 ## 5. Database
 
@@ -313,9 +314,13 @@ flowchart LR
 - **Ownership.** Every query is scoped to the user. Other users' ids answer 404, which reveals nothing. Server Actions confirm ownership through the backend before acting.
 - **SSRF guard.** Provider URLs are resolved through DNS and blocked if they point to private, loopback or link-local ranges (`net.BlockList`). Redirects are refused, and there's a 10 s timeout for tests. `ALLOW_LOCAL_PROVIDERS=true` exists for local development only.
 - **Uploads.** The ZIP is unzipped in memory with size, count and zip-bomb limits. Paths containing `..` are rejected (zip slip).
-- **Auth.** scrypt password hashes, JWT in an `httpOnly` + `SameSite=Lax` cookie (+ `Secure` in production), stricter rate limits on login and register, and open-redirect protection on `?next=`.
+- **Auth.** scrypt password hashes, JWT in an `httpOnly` + `SameSite=Lax` cookie (+ `Secure` in production), and open-redirect protection on `?next=`. Login is protected in layers:
+  - 10 login/register tries per minute per IP.
+  - 5 failed logins for one account from one IP → wait 15 minutes.
+  - 20 failed logins for one account from all IPs in an hour → wait. The lock is short, so an attacker can't lock the owner out for long.
+  - An unknown email is checked against a dummy hash, so the response time doesn't reveal which emails have accounts. Unknown emails are counted too.
 - **Untrusted model output.** Reviews are validated with Zod, and paths and lines are checked against real files. Documents are rendered without raw HTML.
-- **Behind a proxy.** `trust proxy` is set to one hop, so the rate limiter can't be fooled with a faked `X-Forwarded-For`.
+- **Behind a proxy.** `trust proxy` is set to one hop, and `X-Client-IP` is only trusted with the shared secret, so a faked header can't get around the limits.
 
 ## 9. Limits
 
@@ -327,7 +332,8 @@ flowchart LR
 | Chat context | top 3 files (8,000 characters each), 300 paths, last 6 messages |
 | Insight context | 40,000 characters, 500 paths |
 | AI call time | 270 s, including the retry (below the 300 s frontend limit) |
-| Rate limits (per minute) | 100 in general · 10 login/register · 10 reviews · 20 chat messages · 10 insights · 10 connection tests |
+| Rate limits (per minute, per user; per IP when signed out) | 100 in general · 10 login/register · 10 reviews · 20 chat messages · 10 insights · 10 connection tests |
+| Failed logins per account | 5 per IP in 15 min · 20 from all IPs in 1 hour |
 | Demo model | 10 requests per user per day · 200 per site per day |
 
 ## 10. Trade-offs and next steps
@@ -339,4 +345,4 @@ flowchart LR
 | Review history text search in memory | Few reviews per user | Postgres full-text search if history grows |
 | Whole files within a character budget | Works with small local models | Chunking and merging for very large projects |
 | No streaming | Answers take a few seconds | Server-sent events if answers feel slow |
-| Per-IP rate limits behind the BFF | Render sees Vercel's server IP | Forward the user's IP from Next.js and trust one more hop |
+| Rate-limit and login counters in memory | One API instance on Render | Redis or a table when running several instances |

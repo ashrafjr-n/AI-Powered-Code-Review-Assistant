@@ -7,7 +7,7 @@ It is also the **backend-for-frontend**: pages and Server Actions call the NestJ
 ## Stack
 - Next.js 16 (App Router, Turbopack), React 19, TypeScript
 - Tailwind CSS 4 (design tokens in `src/app/globals.css`)
-- Shiki (code highlighting on the server), react-markdown (generated docs), fflate (slims ZIPs in the browser), lucide-react (icons)
+- Shiki (code highlighting on the server), react-markdown + remark-gfm (generated docs), fflate (slims ZIPs in the browser), lucide-react (icons)
 
 ## Run locally
 The backend must run on port 4000 (see [../backend/README.md](../backend/README.md)).
@@ -23,6 +23,7 @@ npm run dev                  # http://localhost:3000
 | Variable | Notes |
 |---|---|
 | `BACKEND_URL` | NestJS base URL without `/api`, e.g. `http://localhost:4000` or `https://<app>.onrender.com`. Server-side only |
+| `BFF_SECRET` | Same value as the backend's. Signs the user's IP so rate limits count real users. Server-side only |
 
 ## Scripts
 | Command | What it does |
@@ -49,4 +50,4 @@ npm run dev                  # http://localhost:3000
 - **Uploads:** the ZIP is slimmed in the browser (drops `node_modules`, builds, binaries; empties secret files) and sent to `/api/...`, which `next.config.ts` rewrites to the backend. Server Actions are limited to 1 MB bodies.
 
 ## Deploy (Vercel)
-Root directory `frontend`, env `BACKEND_URL`. For long reviews the function max duration must be at least 280 s.
+Root directory `frontend`, env `BACKEND_URL` and `BFF_SECRET`. For long reviews the function max duration must be at least 280 s.

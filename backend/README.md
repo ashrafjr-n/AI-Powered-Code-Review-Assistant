@@ -37,6 +37,7 @@ See [.env.example](.env.example) for every variable with a comment.
 | `DATABASE_URL` | yes | Postgres connection string |
 | `JWT_SECRET` | yes | `openssl rand -hex 32` |
 | `ENCRYPTION_KEY` | yes | 64 hex characters: `openssl rand -hex 32`. Encrypts stored API keys (AES-256-GCM) |
+| `BFF_SECRET` | production | Same value as in the frontend. Lets the Next.js server pass the user's IP (`X-Client-IP`) for rate limits. `openssl rand -hex 32` |
 | `NODE_ENV` | production | `production` = login cookie is HTTPS only |
 | `ALLOW_LOCAL_PROVIDERS` | dev only | `true` allows models on localhost/private networks. **Never set it on a public server** (SSRF protection) |
 | `DEMO_*` | optional | Built-in free demo model (any OpenAI-compatible API) and its daily limits. Empty `DEMO_BASE_URL` = demo off |
@@ -54,7 +55,7 @@ See [.env.example](.env.example) for every variable with a comment.
 ## Modules (`src/`)
 | Module | Routes | Job |
 |---|---|---|
-| `auth` | `POST /auth/register`, `/login`, `/logout`, `GET /auth/me` | scrypt passwords, JWT in an httpOnly cookie. A global guard protects every route; open ones use `@Public()` |
+| `auth` | `POST /auth/register`, `/login`, `/logout`, `GET /auth/me` | scrypt passwords, JWT in an httpOnly cookie. A global guard protects every route; open ones use `@Public()`. Rate limits per user (`UserThrottlerGuard`) and failed-login lock per account (`LoginAttempts`) |
 | `projects` | `GET/POST /projects`, `GET/DELETE /projects/:id` | Every query is scoped to the user; other users' projects answer 404 |
 | `files` | `POST/GET /projects/:id/files`, `GET …/files/content?path=` | Unzip in memory with limits, skip junk, keep secret files by path only, redact inline secrets |
 | `providers` | `/providers` (list, add, edit, delete, set main, test), `/providers/options`, `/providers/demo` | Encrypted API keys, SSRF guard, the demo model with daily limits. `useProvider()` is the one gate for every AI call |
@@ -71,4 +72,4 @@ See [.env.example](.env.example) for every variable with a comment.
 | Start command | `node dist/main` |
 | Health check | `/api/health` |
 
-Set `NODE_ENV=production`, fresh `JWT_SECRET` and `ENCRYPTION_KEY`, and the database URL. Don't set `ALLOW_LOCAL_PROVIDERS`. `trust proxy` is set to one hop in `src/main.ts`.
+Set `NODE_ENV=production`, fresh `JWT_SECRET`, `ENCRYPTION_KEY` and `BFF_SECRET` (the same `BFF_SECRET` on Vercel), and the database URL. Don't set `ALLOW_LOCAL_PROVIDERS`. `trust proxy` is set to one hop in `src/main.ts`.
