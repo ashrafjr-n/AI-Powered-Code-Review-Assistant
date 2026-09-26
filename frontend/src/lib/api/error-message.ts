@@ -4,11 +4,18 @@ export interface BackendError {
   message: string;
   /** Machine-readable reason, e.g. "DEMO_LIMIT" or "DEMO_BUSY". */
   code?: string;
+  /** DEMO_LIMIT only: "user" (this account) or "site" (everyone). */
+  reason?: string;
   /** DEMO_LIMIT only: when the daily counts go back to zero (ISO date). */
   resetsAt?: string;
 }
 
-// NestJS errors look like { message: string | string[], code?, resetsAt? }.
+function optionalString(body: object, key: string): string | undefined {
+  const value: unknown = (body as Record<string, unknown>)[key];
+  return typeof value === "string" ? value : undefined;
+}
+
+// NestJS errors look like { message: string | string[], code?, reason?, resetsAt? }.
 // Anything else gets a generic text.
 export async function readError(response: Response): Promise<BackendError> {
   const fallback = { message: `Request failed (${response.status})` };
@@ -23,13 +30,12 @@ export async function readError(response: Response): Promise<BackendError> {
         : typeof message === "string"
           ? message
           : fallback.message;
-    const code =
-      "code" in body && typeof body.code === "string" ? body.code : undefined;
-    const resetsAt =
-      "resetsAt" in body && typeof body.resetsAt === "string"
-        ? body.resetsAt
-        : undefined;
-    return { message: text, code, resetsAt };
+    return {
+      message: text,
+      code: optionalString(body, "code"),
+      reason: optionalString(body, "reason"),
+      resetsAt: optionalString(body, "resetsAt"),
+    };
   } catch {
     // Not JSON (e.g. a proxy error page).
     return fallback;
