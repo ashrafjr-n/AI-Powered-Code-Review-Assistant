@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, FolderTree } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
+import { FolderTree } from "lucide-react";
 import { ChatPanel } from "@/components/workspace/chat-panel";
 import { CodeViewer } from "@/components/workspace/code-viewer";
 import { FileTree } from "@/components/workspace/file-tree";
@@ -36,26 +34,9 @@ export default async function WorkspacePage({
   if (!project) notFound();
 
   const files = await listFiles(id);
-  const back = (
-    <Link
-      href="/projects"
-      className="mb-4 inline-flex items-center gap-1 font-mono text-xs text-silver-500 hover:text-paper"
-    >
-      <ChevronLeft aria-hidden className="size-3.5" strokeWidth={1.5} />
-      Projects
-    </Link>
-  );
-
   if (files.length === 0) {
     return (
-      <div className="mx-auto max-w-3xl space-y-8">
-        <div>
-          {back}
-          <PageHeader
-            title={project.name}
-            description={project.description || undefined}
-          />
-        </div>
+      <div className="mx-auto max-w-3xl">
         <UploadDropzone projectId={id} />
       </div>
     );
@@ -94,16 +75,8 @@ export default async function WorkspacePage({
   );
 
   return (
-    <div className="space-y-6">
-      <div>
-        {back}
-        <PageHeader
-          title={project.name}
-          description={`${files.length} files${project.description ? ` · ${project.description}` : ""}`}
-        />
-      </div>
-
-      <div className="grid gap-4 lg:h-[calc(100dvh-13rem)] lg:min-h-[560px] lg:grid-cols-[240px_minmax(0,1fr)_360px]">
+    <div>
+      <div className="grid gap-4 lg:h-[calc(100dvh-7.5rem)] lg:min-h-[560px] lg:grid-cols-[240px_minmax(0,1fr)_360px]">
         {/* One file tree: collapsible on small screens, a plain sidebar on desktop. */}
         <div className="min-h-0 rounded-md border border-line bg-ink-900 lg:overflow-auto">
           <details open className="group">
