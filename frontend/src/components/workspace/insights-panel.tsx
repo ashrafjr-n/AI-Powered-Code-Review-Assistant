@@ -1,98 +1,96 @@
-import { CopyButton } from "@/components/ui/copy-button";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { insightDocs } from "@/content/insights";
+import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/format";
+import { workspaceHref } from "@/lib/workspace-url";
 import type { Insight, InsightKind } from "@/lib/types";
 import { InsightForm } from "./insight-form";
-
-const DOC_KINDS: { kind: InsightKind; label: string }[] = [
-  { kind: "README", label: "README" },
-  { kind: "SETUP", label: "Setup guide" },
-  { kind: "API_DOCS", label: "API documentation" },
-];
-
-const TITLES: Record<InsightKind, string> = {
-  ARCHITECTURE: "Architecture overview",
-  README: "README",
-  SETUP: "Setup guide",
-  API_DOCS: "API documentation",
-};
 
 interface InsightsPanelProps {
   projectId: string;
   insights: Insight[];
+  /** The document open in the middle pane, if any. */
+  openDoc?: InsightKind;
+  /** The selected file, kept in links so "Back to code" returns to it. */
+  file?: string;
 }
 
-export function InsightsPanel({ projectId, insights }: InsightsPanelProps) {
-  const architecture = insights.find(
-    (insight) => insight.kind === "ARCHITECTURE",
-  );
-  const docs = insights.filter((insight) => insight.kind !== "ARCHITECTURE");
-
+// The panel is narrow: it only lists the four documents with their state.
+// A generated document opens in the wide middle pane (?doc=…), rendered as Markdown.
+export function InsightsPanel({
+  projectId,
+  insights,
+  openDoc,
+  file,
+}: InsightsPanelProps) {
+  const byKind = new Map(insights.map((insight) => [insight.kind, insight]));
   return (
-    <div className="space-y-8 p-4">
-      <section aria-labelledby="architecture-title" className="space-y-3">
-        <h2 id="architecture-title" className="text-sm font-medium text-paper">
-          Architecture overview
-        </h2>
-        <p className="text-xs leading-relaxed text-silver-500">
-          A map of the layers, entry points and how the parts talk to each
-          other.
-        </p>
-        <InsightForm
-          projectId={projectId}
-          label={architecture ? "Regenerate" : "Generate"}
-        >
-          <input type="hidden" name="kind" value="ARCHITECTURE" />
-        </InsightForm>
-        {architecture && <InsightOutput insight={architecture} />}
-      </section>
-
-      <section
-        aria-labelledby="docs-title"
-        className="space-y-3 border-t border-line pt-8"
-      >
-        <h2 id="docs-title" className="text-sm font-medium text-paper">
-          Documentation
-        </h2>
-        <p className="text-xs leading-relaxed text-silver-500">
-          Draft docs from the code. Copy them into your repository and edit.
-        </p>
-        <InsightForm projectId={projectId} label="Generate">
-          <label htmlFor="doc-kind" className="sr-only">
-            Document type
-          </label>
-          <select
-            id="doc-kind"
-            name="kind"
-            className="h-8 min-w-0 flex-1 rounded-sm border border-line-strong bg-ink-800 px-2 text-sm text-paper"
-          >
-            {DOC_KINDS.map((doc) => (
-              <option key={doc.kind} value={doc.kind}>
-                {doc.label}
-              </option>
-            ))}
-          </select>
-        </InsightForm>
-        {docs.map((insight) => (
-          <InsightOutput key={insight.kind} insight={insight} />
-        ))}
-      </section>
+    <div className="space-y-4 p-4">
+      <p className="text-xs leading-relaxed text-silver-500">
+        Drafts written from the code. Open one to read it, copy it into your
+        repository and edit.
+      </p>
+      <ul className="space-y-3">
+        {insightDocs.map((doc) => {
+          const insight = byKind.get(doc.kind);
+          const open = openDoc === doc.kind;
+          return (
+            <li
+              key={doc.kind}
+              className={cn(
+                "space-y-3 rounded-md border p-3",
+                open ? "border-silver-300 bg-ink-850" : "border-line",
+              )}
+            >
+              <div className="space-y-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <h2 className="text-sm font-medium text-paper">
+                    {doc.title}
+                  </h2>
+                  {insight &&
+                    (open ? (
+                      <span className="shrink-0 font-mono text-xs text-silver-500">
+                        Reading
+                      </span>
+                    ) : (
+                      <Link
+                        href={workspaceHref(projectId, {
+                          tab: "insights",
+                          doc: doc.kind,
+                          file,
+                        })}
+                        className="inline-flex shrink-0 items-center gap-1.5 font-mono text-xs text-silver-300 transition-colors hover:text-paper"
+                      >
+                        Open
+                        <ArrowRight
+                          aria-hidden
+                          className="size-3.5"
+                          strokeWidth={1.5}
+                        />
+                      </Link>
+                    ))}
+                </div>
+                <p className="text-xs leading-relaxed text-silver-500">
+                  {doc.description}
+                </p>
+                <p className="font-mono text-[11px] text-silver-400">
+                  {insight
+                    ? `Generated ${formatDateTime(insight.createdAt)} · ${insight.model}`
+                    : "Not generated yet"}
+                </p>
+              </div>
+              <InsightForm
+                projectId={projectId}
+                label={insight ? "Regenerate" : "Generate"}
+              >
+                <input type="hidden" name="kind" value={doc.kind} />
+                {file && <input type="hidden" name="file" value={file} />}
+              </InsightForm>
+            </li>
+          );
+        })}
+      </ul>
     </div>
-  );
-}
-
-function InsightOutput({ insight }: { insight: Insight }) {
-  return (
-    <article className="rounded-md border border-line bg-ink-950">
-      <header className="flex items-center justify-between gap-2 border-b border-line py-1 pr-1 pl-3">
-        <span className="font-mono text-xs text-silver-500">
-          {TITLES[insight.kind]} · {insight.model} ·{" "}
-          {formatDateTime(insight.createdAt)}
-        </span>
-        <CopyButton text={insight.content} />
-      </header>
-      <pre className="max-h-80 overflow-auto p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap text-silver-300">
-        {insight.content}
-      </pre>
-    </article>
   );
 }
