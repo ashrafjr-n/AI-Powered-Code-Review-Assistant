@@ -13,6 +13,7 @@ import {
 } from "@/lib/severity";
 import type { Review, Severity } from "@/lib/types";
 import { workspaceHref } from "@/lib/workspace-url";
+import { DiffView } from "./diff-view";
 import { SeverityBar } from "./severity-bar";
 
 interface ReviewReportProps {
@@ -59,6 +60,14 @@ export function ReviewReport({ review, only }: ReviewReportProps) {
           {review.summary}
         </p>
       </header>
+
+      {review.diff && (
+        <DiffView
+          patch={review.diff}
+          before={review.filePaths[0]}
+          after={review.filePaths[1]}
+        />
+      )}
 
       <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_320px]">
         <section aria-labelledby="issues-title" className="space-y-4">
