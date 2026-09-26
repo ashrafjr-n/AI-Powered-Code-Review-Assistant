@@ -4,12 +4,11 @@ import type { NavLink } from "@/content/landing";
 
 interface SiteFooterProps {
   tagline: string;
-  note: string;
   links: NavLink[];
   repoUrl: string;
 }
 
-export function SiteFooter({ tagline, note, links, repoUrl }: SiteFooterProps) {
+export function SiteFooter({ tagline, links, repoUrl }: SiteFooterProps) {
   return (
     <footer className="border-t border-line">
       <div className="mx-auto grid max-w-[1200px] gap-10 px-4 py-14 sm:px-8 md:grid-cols-[1fr_auto_auto] md:gap-20 md:px-16">
@@ -49,9 +48,6 @@ export function SiteFooter({ tagline, note, links, repoUrl }: SiteFooterProps) {
           </a>
         </div>
       </div>
-      <p className="mx-auto max-w-[1200px] border-t border-line px-4 py-6 font-mono text-xs text-silver-500 sm:px-8 md:px-16">
-        {note}
-      </p>
     </footer>
   );
 }
