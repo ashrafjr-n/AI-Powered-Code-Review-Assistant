@@ -4,6 +4,7 @@ import { startTransition, useActionState } from "react";
 import type { FormEvent } from "react";
 import { runReviewAction } from "@/app/(app)/projects/[id]/actions";
 import { Button } from "@/components/ui/button";
+import { DemoLimitPanel } from "@/components/app/demo-limit-panel";
 import { FormError } from "@/components/ui/form-error";
 import { MODE_LABEL } from "@/lib/labels";
 import type { ReviewMode } from "@/lib/types";
@@ -40,6 +41,7 @@ export function ReviewForm({ projectId, currentFile }: ReviewFormProps) {
 
   return (
     <form id={REVIEW_FORM_ID} onSubmit={onSubmit} className="space-y-6">
+      {state.demo && <DemoLimitPanel notice={state.demo} />}
       <FormError message={state.error} />
       <fieldset className="space-y-2">
         <legend className="mb-3 font-mono text-[11px] tracking-label text-silver-500 uppercase">

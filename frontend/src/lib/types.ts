@@ -123,3 +123,10 @@ export type DemoStatus =
       resetsAt: string;
       siteLimitReached: boolean;
     };
+
+/** Why a request to the demo model was refused (shown as a help panel, not an error). */
+export interface DemoNotice {
+  kind: "user" | "site" | "busy";
+  /** ISO time of the reset (limits only). */
+  resetsAt?: string;
+}

@@ -7,6 +7,7 @@ import {
   sendChatAction,
   type ChatActionState,
 } from "@/app/(app)/projects/[id]/actions";
+import { DemoLimitPanel } from "@/components/app/demo-limit-panel";
 import { FormError } from "@/components/ui/form-error";
 
 interface ChatComposerProps {
@@ -50,6 +51,7 @@ export function ChatComposer({
           <p className="font-mono text-xs text-silver-500">Reading the code…</p>
         </div>
       )}
+      {state.demo && <DemoLimitPanel notice={state.demo} />}
       <FormError message={state.error} />
       <form action={formAction} className="space-y-3">
         {suggestions.length > 0 && !pending && (

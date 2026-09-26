@@ -7,12 +7,27 @@ import { ApiError } from "@/lib/api/client";
 import { getProject } from "@/lib/api/projects";
 import { runReview } from "@/lib/api/reviews";
 import { MODE_LABEL } from "@/lib/labels";
-import type { InsightKind, ReviewMode, ReviewScope } from "@/lib/types";
+import type {
+  DemoNotice,
+  InsightKind,
+  ReviewMode,
+  ReviewScope,
+} from "@/lib/types";
 import { workspaceHref } from "@/lib/workspace-url";
 import { generateInsight } from "@/mocks/insights";
 
 export interface ActionState {
   error?: string;
+  /** The free demo can't answer (limit or busy): show the help panel instead. */
+  demo?: DemoNotice;
+}
+
+function demoNotice(error: ApiError): DemoNotice | undefined {
+  const { code, reason, resetsAt } = error.details;
+  if (code === "DEMO_BUSY") return { kind: "busy" };
+  if (code === "DEMO_LIMIT")
+    return { kind: reason === "site" ? "site" : "user", resetsAt };
+  return undefined;
 }
 
 // Server Actions are public endpoints: always confirm (via the backend) that the project
@@ -50,6 +65,8 @@ export async function runReviewAction(
   try {
     ({ id: reviewId } = await runReview(projectId, { mode, scope, filePaths }));
   } catch (error) {
+    const demo = error instanceof ApiError ? demoNotice(error) : undefined;
+    if (demo) return { demo };
     // 400 (no provider, bad files), 404 (not yours), 429 (limit), 502 (model failed).
     if (
       error instanceof ApiError &&
@@ -84,6 +101,8 @@ export async function sendChatAction(
   try {
     id = await askQuestion(projectId, sessionId, question);
   } catch (error) {
+    const demo = error instanceof ApiError ? demoNotice(error) : undefined;
+    if (demo) return { demo, question };
     // 400 (no files / no provider), 404 (not yours), 429 (limit), 502 (model failed).
     if (
       error instanceof ApiError &&
