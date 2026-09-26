@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { ApiError } from "@/lib/api/client";
 import { createProject, deleteProject } from "@/lib/api/projects";
 
 export interface ProjectFormState {
@@ -22,12 +23,28 @@ export async function createProjectAction(
     return { ok: false, error: "Description must be 500 characters or less." };
   }
 
-  await createProject({ name, description });
+  try {
+    await createProject({ name, description });
+  } catch (error) {
+    // 400 (validation) or 429 (rate limit): show it in the form, not the error page.
+    if (error instanceof ApiError && error.status < 500)
+      return { ok: false, error: error.message };
+    throw error;
+  }
   revalidatePath("/projects");
   return { ok: true };
 }
 
-export async function deleteProjectAction(id: string): Promise<void> {
-  await deleteProject(id);
+/** Returns an error message to show in the dialog, or nothing when the project is gone. */
+export async function deleteProjectAction(
+  id: string,
+): Promise<string | undefined> {
+  try {
+    await deleteProject(id);
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status >= 500) throw error;
+    // 404 = already deleted (e.g. in another tab): the goal is reached.
+    if (error.status !== 404) return error.message;
+  }
   revalidatePath("/projects");
 }
