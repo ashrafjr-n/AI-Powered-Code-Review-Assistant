@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { X } from "lucide-react";
 import { CopyButton } from "@/components/ui/copy-button";
 import { insightTitle } from "@/content/insights";
@@ -14,6 +15,7 @@ interface InsightDocumentProps {
 
 // A generated document in the wide middle pane. Model output is untrusted: react-markdown
 // builds React elements (no raw HTML, unsafe link protocols removed), so nothing runs.
+// remark-gfm adds GitHub syntax: tables (API docs), strikethrough, task lists, autolinks.
 export function InsightDocument({ insight, closeHref }: InsightDocumentProps) {
   const title = insightTitle[insight.kind];
   return (
@@ -39,7 +41,7 @@ export function InsightDocument({ insight, closeHref }: InsightDocumentProps) {
       </header>
       <div className="min-h-0 flex-1 overflow-auto px-6 py-6 sm:px-10">
         <article className="doc-view max-w-3xl">
-          <Markdown>{insight.content}</Markdown>
+          <Markdown remarkPlugins={[remarkGfm]}>{insight.content}</Markdown>
         </article>
       </div>
     </section>
