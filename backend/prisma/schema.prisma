@@ -21,6 +21,7 @@ enum ReviewScope {
   FILE
   FILES
   PROJECT
+  DIFF // two files compared: filePaths = [before, after]
 }
 
 enum Severity {
@@ -90,6 +91,7 @@ model Review {
   mode            ReviewMode
   scope           ReviewScope
   filePaths       String[] // files actually sent to the AI
+  diff            String?     @db.Text // DIFF only: the unified diff that was reviewed (kept after re-uploads)
   summary         String      @db.Text
   issues          Json // [{ title, description, severity, filePath?, line? }] validated with Zod
   recommendations Json // string[] validated with Zod
@@ -165,4 +167,3 @@ model Insight {
 
   @@unique([projectId, kind])
 }
-
