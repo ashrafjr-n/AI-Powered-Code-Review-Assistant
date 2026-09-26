@@ -15,8 +15,8 @@ import { buildFileTree } from "@/lib/file-tree";
 import { firstParam, parseTab } from "@/lib/workspace-url";
 import { listChatSessions } from "@/mocks/chat";
 import { listInsights } from "@/mocks/insights";
+import { getFile, listFiles } from "@/lib/api/files";
 import { getProject } from "@/lib/api/projects";
-import { getProjectFiles } from "@/mocks/projects";
 import { listProjectReviews } from "@/mocks/reviews";
 
 export async function generateMetadata({
@@ -35,7 +35,7 @@ export default async function WorkspacePage({
   const project = await getProject(id);
   if (!project) notFound();
 
-  const files = await getProjectFiles(id);
+  const files = await listFiles(id);
   const back = (
     <Link
       href="/projects"
@@ -63,17 +63,20 @@ export default async function WorkspacePage({
 
   const tab = parseTab(query.tab);
   const requested = firstParam(query.file);
-  const file =
+  const selected =
     files.find((candidate) => candidate.path === requested) ??
     files.find((candidate) => candidate.path.toLowerCase() === "readme.md") ??
     files[0];
   const line = Number(firstParam(query.line)) || undefined;
 
-  const [reviews, sessions, insights] = await Promise.all([
+  const [file, reviews, sessions, insights] = await Promise.all([
+    getFile(id, selected.path),
     listProjectReviews(id),
     listChatSessions(id),
     listInsights(id),
   ]);
+  // Only possible if the files were replaced between the two requests.
+  if (!file) notFound();
   const chatParam = firstParam(query.chat);
   const activeChat =
     chatParam === "new"
