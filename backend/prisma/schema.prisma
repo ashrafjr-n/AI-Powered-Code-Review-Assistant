@@ -30,6 +30,13 @@ enum Severity {
   LOW
 }
 
+enum InsightKind {
+  ARCHITECTURE
+  README
+  SETUP
+  API_DOCS
+}
+
 enum MessageRole {
   USER
   ASSISTANT
@@ -57,6 +64,7 @@ model Project {
   files        File[]
   reviews      Review[]
   chatSessions ChatSession[]
+  insights     Insight[]
 
   @@index([userId, createdAt])
 }
@@ -140,3 +148,19 @@ model DemoUsage {
   @@id([userId, day])
   @@index([day])
 }
+
+// Generated architecture overview / docs. One per project and kind: regenerating replaces it.
+model Insight {
+  id           String      @id @default(uuid(7)) @db.Uuid
+  projectId    String      @db.Uuid
+  project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  kind         InsightKind
+  content      String      @db.Text
+  filePaths    String[] // files the model read
+  providerName String // snapshot, like reviews
+  model        String
+  createdAt    DateTime    @default(now())
+
+  @@unique([projectId, kind])
+}
+
