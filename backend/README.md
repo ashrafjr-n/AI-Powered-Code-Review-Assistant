@@ -1,124 +1,74 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Redline — backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+NestJS API for Redline: auth, projects, ZIP uploads, AI code reviews, chat with code, generated docs and model providers. PostgreSQL through Prisma. Every route lives under `/api`.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+The browser never calls this server directly: the Next.js app calls it from its own server (see [../ARCHITECTURE.md](../ARCHITECTURE.md)).
 
-## Description
+## Stack
+- NestJS 12 (ESM, strict TypeScript), Express
+- Prisma 7.10 (pinned) + `@prisma/adapter-pg`, PostgreSQL 17
+- Zod for request validation (`@Body({ schema })` + `StandardSchemaValidationPipe`)
+- Official `openai` SDK with a configurable base URL (OpenAI, Gemini, Groq, OpenRouter, Ollama, LM Studio…)
+- Vitest (unit + e2e), oxlint
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+## Run locally
+Needs Node 22 and Docker.
 
 ```bash
-$ npm install
+# from the repo root: start Postgres (host port 5433)
+cp .env.example .env
+npm run db
+
+# backend
+cd backend
+cp .env.example .env        # then fill JWT_SECRET and ENCRYPTION_KEY (see below)
+npx -y npm@11 install       # npm 10.9 crashes on this project (npm bug), npm 11 works
+npx prisma migrate deploy
+npm run start:dev           # http://localhost:4000/api/health
 ```
 
-## Compile and run the project
+`npm run dev` in the repo root starts the database, this backend and the frontend together.
 
-```bash
-# development
-$ npm run start
+## Environment
+See [.env.example](.env.example) for every variable with a comment.
 
-# watch mode
-$ npm run start:dev
+| Variable | Required | Notes |
+|---|---|---|
+| `DATABASE_URL` | yes | Postgres connection string |
+| `JWT_SECRET` | yes | `openssl rand -hex 32` |
+| `ENCRYPTION_KEY` | yes | 64 hex characters: `openssl rand -hex 32`. Encrypts stored API keys (AES-256-GCM) |
+| `NODE_ENV` | production | `production` = login cookie is HTTPS only |
+| `ALLOW_LOCAL_PROVIDERS` | dev only | `true` allows models on localhost/private networks. **Never set it on a public server** (SSRF protection) |
+| `DEMO_*` | optional | Built-in free demo model (any OpenAI-compatible API) and its daily limits. Empty `DEMO_BASE_URL` = demo off |
+| `PORT` | optional | Default 4000 |
 
-# production mode
-$ npm run start:prod
-```
+## Scripts
+| Command | What it does |
+|---|---|
+| `npm run start:dev` | Dev server with watch |
+| `npm run build` / `npm run start:prod` | Build to `dist/` / run it |
+| `npm test` | Unit tests |
+| `npm run test:e2e` | End-to-end tests against the local database (a fake model server, no real AI calls) |
+| `npm run lint` | oxlint (type-aware) |
 
-## Run tests
+## Modules (`src/`)
+| Module | Routes | Job |
+|---|---|---|
+| `auth` | `POST /auth/register`, `/login`, `/logout`, `GET /auth/me` | scrypt passwords, JWT in an httpOnly cookie. A global guard protects every route; open ones use `@Public()` |
+| `projects` | `GET/POST /projects`, `GET/DELETE /projects/:id` | Every query is scoped to the user; other users' projects answer 404 |
+| `files` | `POST/GET /projects/:id/files`, `GET …/files/content?path=` | Unzip in memory with limits, skip junk, keep secret files by path only, redact inline secrets |
+| `providers` | `/providers` (list, add, edit, delete, set main, test), `/providers/options`, `/providers/demo` | Encrypted API keys, SSRF guard, the demo model with daily limits. `useProvider()` is the one gate for every AI call |
+| `reviews` | `POST /projects/:id/reviews`, `GET …/reviews/plan`, `GET /reviews`, `GET /reviews/:id` | Prompt, context budget, JSON output checked with Zod (1 retry), paths/lines matched to real files |
+| `chat` | `GET /projects/:id/chats`, `POST …/chats/messages` | Keyword retrieval (top 3 files = sources), last 6 messages as history |
+| `insights` | `GET/POST /projects/:id/insights` | Architecture overview, README, setup guide, API docs. One saved document per kind |
+| `health` | `GET /health` | For the host's health check |
 
-```bash
-# unit tests
-$ npm run test
+## Deploy (Render)
+| Setting | Value |
+|---|---|
+| Root directory | `backend` |
+| Build command | `npx -y npm@11 ci --include=dev && npx prisma migrate deploy && npm run build` |
+| Start command | `node dist/main` |
+| Health check | `/api/health` |
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Observability
-
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
-
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
-
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
-
-To add it to this project:
-
-```bash
-$ npm install @nestjs/observe
-```
-
-Then follow the [setup guide](https://docs.nestjs.com/observability/overview) - it takes a single import and an app key.
-
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Set `NODE_ENV=production`, fresh `JWT_SECRET` and `ENCRYPTION_KEY`, and the database URL. Don't set `ALLOW_LOCAL_PROVIDERS`. `trust proxy` is set to one hop in `src/main.ts`.
