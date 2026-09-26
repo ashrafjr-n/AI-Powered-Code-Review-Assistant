@@ -1,5 +1,6 @@
 import "server-only";
 import { codeToHtml, type ThemeRegistration } from "shiki";
+import type { LineMarker } from "./issue-markers";
 
 // Redline's own monochrome theme: silver shades only, no rainbow syntax colors.
 const redlineTheme: ThemeRegistration = {
@@ -45,13 +46,15 @@ const redlineTheme: ThemeRegistration = {
 const MAX_HIGHLIGHT_BYTES = 200_000;
 
 /**
- * Server-side highlighting. Each line gets id="L<n>" (so #L27 links scroll there)
- * and the target line gets the "highlighted" class.
+ * Server-side highlighting. Each line gets id="L<n>" (so #L27 links scroll there),
+ * the target line gets the "highlighted" class, and lines with review issues get
+ * data-severity (a dot in the gutter) + the issue titles as hover text.
  */
 export async function highlightCode(
   code: string,
   lang: string,
   highlightLine?: number,
+  markers: Map<number, LineMarker> = new Map(),
 ): Promise<string> {
   // Very large files are shown as plain text: highlighting them is slow and rarely useful.
   const safeLang = code.length > MAX_HIGHLIGHT_BYTES ? "text" : lang;
@@ -64,6 +67,11 @@ export async function highlightCode(
           node.properties.id = `L${line}`;
           node.properties["data-line"] = line;
           if (line === highlightLine) this.addClassToHast(node, "highlighted");
+          const marker = markers.get(line);
+          if (marker) {
+            node.properties["data-severity"] = marker.severity.toLowerCase();
+            node.properties.title = marker.titles.join("\n");
+          }
         },
       },
     ],

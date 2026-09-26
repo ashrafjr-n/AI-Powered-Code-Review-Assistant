@@ -1,16 +1,28 @@
 import { highlightCode } from "@/lib/highlight";
 import { formatBytes } from "@/lib/format";
 import { languageFor } from "@/lib/language";
+import type { LineMarker } from "@/lib/issue-markers";
 import type { ProjectFile } from "@/lib/types";
 
 interface CodeViewerProps {
   file: ProjectFile;
   highlightLine?: number;
+  /** Issue dots from the latest review of this file. */
+  markers?: Map<number, LineMarker>;
 }
 
-export async function CodeViewer({ file, highlightLine }: CodeViewerProps) {
+export async function CodeViewer({
+  file,
+  highlightLine,
+  markers,
+}: CodeViewerProps) {
   const language = languageFor(file.path);
-  const html = await highlightCode(file.content, language, highlightLine);
+  const html = await highlightCode(
+    file.content,
+    language,
+    highlightLine,
+    markers,
+  );
   const lineCount = file.content.split("\n").length;
 
   return (

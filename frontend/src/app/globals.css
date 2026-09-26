@@ -148,4 +148,23 @@
   .code-view .line.highlighted::before {
     color: var(--color-paper);
   }
+
+  /* Lines with an issue in the latest review: a dot left of the line number.
+     Same shapes as the severity badges: red only for critical. */
+  .code-view .line[data-severity]::before {
+    background: radial-gradient(circle, var(--dot) 3px, transparent 3.5px)
+      no-repeat 0.5rem center / 8px 8px;
+  }
+  .code-view .line[data-severity="critical"] {
+    --dot: var(--color-red);
+  }
+  .code-view .line[data-severity="high"] {
+    --dot: var(--color-paper);
+  }
+  .code-view .line[data-severity="medium"] {
+    --dot: var(--color-silver-400);
+  }
+  .code-view .line[data-severity="low"] {
+    --dot: var(--color-silver-500);
+  }
 }

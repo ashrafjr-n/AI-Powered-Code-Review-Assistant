@@ -12,6 +12,7 @@ import { ReviewPanel } from "@/components/workspace/review-panel";
 import { UploadDropzone } from "@/components/workspace/upload-dropzone";
 import { UploadSummary } from "@/components/workspace/upload-summary";
 import { buildFileTree } from "@/lib/file-tree";
+import { issueMarkers } from "@/lib/issue-markers";
 import { firstParam, parseTab } from "@/lib/workspace-url";
 import { listChatSessions } from "@/lib/api/chat";
 import { getFile, listFiles } from "@/lib/api/files";
@@ -107,6 +108,7 @@ export default async function WorkspacePage({
             <CodeViewer
               file={file}
               highlightLine={file.path === requested ? line : undefined}
+              markers={issueMarkers(reviews, file.path)}
             />
           ) : (
             <HiddenFileNotice path={selected.path} />
