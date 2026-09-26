@@ -1,0 +1,128 @@
+// Prisma schema: https://pris.ly/d/prisma-schema
+// Ownership chain: User -> Project -> (File | Review | ChatSession -> Message).
+// Reviews and chats reach their owner through the project, so no duplicated userId.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ReviewMode {
+  SECURITY
+  PERFORMANCE
+  QUALITY
+}
+
+enum ReviewScope {
+  FILE
+  FILES
+  PROJECT
+}
+
+enum Severity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
+
+model User {
+  id           String       @id @default(uuid(7)) @db.Uuid
+  email        String       @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime     @default(now())
+  projects     Project[]
+  aiProviders  AiProvider[]
+}
+
+model Project {
+  id           String        @id @default(uuid(7)) @db.Uuid
+  userId       String        @db.Uuid
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  description  String        @default("")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  files        File[]
+  reviews      Review[]
+  chatSessions ChatSession[]
+
+  @@index([userId, createdAt])
+}
+
+model File {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  projectId String   @db.Uuid
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  path      String // relative path inside the upload, e.g. "src/app.ts"
+  content   String   @db.Text
+  size      Int // bytes, so file lists never need to load content
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, path])
+}
+
+model Review {
+  id              String      @id @default(uuid(7)) @db.Uuid
+  projectId       String      @db.Uuid
+  project         Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  mode            ReviewMode
+  scope           ReviewScope
+  filePaths       String[] // files actually sent to the AI
+  summary         String      @db.Text
+  issues          Json // [{ title, description, severity, filePath?, line? }] validated with Zod
+  recommendations Json // string[] validated with Zod
+  highestSeverity Severity? // null when no issues; stored for list badges and filtering
+  providerName    String // snapshot, so history survives provider edits/deletes
+  model           String
+  createdAt       DateTime    @default(now())
+
+  @@index([projectId, createdAt])
+}
+
+model AiProvider {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  userId          String   @db.Uuid
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String // e.g. "OpenAI", "LM Studio"
+  baseUrl         String // e.g. https://api.openai.com/v1
+  model           String
+  apiKeyEncrypted String? // AES-256-GCM; null for local servers without a key
+  isDefault       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model ChatSession {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  projectId String    @db.Uuid
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  createdAt DateTime  @default(now())
+  messages  Message[]
+
+  @@index([projectId, createdAt])
+}
+
+model Message {
+  id        String      @id @default(uuid(7)) @db.Uuid
+  sessionId String      @db.Uuid
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      MessageRole
+  content   String      @db.Text
+  createdAt DateTime    @default(now())
+
+  @@index([sessionId, createdAt])
+}
