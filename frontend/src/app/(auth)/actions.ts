@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { backendUrl } from "@/lib/api/client";
+import { backendUrl, clientIpHeaders } from "@/lib/api/client";
 import { errorMessage } from "@/lib/api/error-message";
 import { AUTH_COOKIE } from "@/lib/auth-cookie";
 import { safeNextPath } from "@/lib/safe-redirect";
@@ -39,7 +39,10 @@ async function callAuth(
   try {
     return await fetch(`${backendUrl()}/api/auth/${path}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(await clientIpHeaders()),
+      },
       body: JSON.stringify(body),
       cache: "no-store",
     });
@@ -53,9 +56,9 @@ async function friendlyError(response: Response | null): Promise<string> {
   if (response.status === 401) return "Invalid email or password.";
   if (response.status === 409)
     return "This email is already registered. Try signing in.";
-  if (response.status === 429)
-    return "Too many attempts. Wait a minute and try again.";
-  if (response.status === 400) return errorMessage(response);
+  // 429: the backend says how long to wait (a minute, or minutes for a locked account).
+  if (response.status === 429 || response.status === 400)
+    return errorMessage(response);
   return "Something went wrong. Please try again.";
 }
 
