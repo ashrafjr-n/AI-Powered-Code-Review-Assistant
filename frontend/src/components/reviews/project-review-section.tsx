@@ -24,7 +24,7 @@ export function ProjectReviewSection({
   return (
     <details
       open={defaultOpen}
-      className="group rounded-md border border-line bg-ink-900 open:bg-ink-950"
+      className="group details-smooth rounded-md border border-line bg-ink-900 transition-colors duration-200 open:border-line-strong open:bg-ink-950"
     >
       <summary className="flex list-none flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 transition-colors hover:bg-ink-850 [&::-webkit-details-marker]:hidden">
         <ChevronRight
