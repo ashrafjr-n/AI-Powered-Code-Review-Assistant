@@ -1,6 +1,7 @@
 import { Gift } from "lucide-react";
 import { UsageBar } from "@/components/ui/usage-bar";
 import { demoCard } from "@/content/demo";
+import { cn } from "@/lib/cn";
 import { formatTimeLeft } from "@/lib/format";
 
 interface DemoCardProps {
@@ -25,7 +26,10 @@ export function DemoCard({
   return (
     <section
       aria-labelledby="demo-title"
-      className="space-y-4 rounded-md border border-line bg-ink-900 p-5"
+      className={cn(
+        "space-y-4 rounded-md border p-5",
+        inUse ? "border-silver-300 bg-ink-850" : "border-line bg-ink-900",
+      )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
@@ -38,8 +42,17 @@ export function DemoCard({
           </h2>
           <p className="font-mono text-xs text-silver-400">{model}</p>
         </div>
-        <p className="font-mono text-xs text-silver-500">
-          {inUse ? demoCard.inUse : demoCard.notInUse}
+        <p className="flex items-center gap-2 font-mono text-[11px] tracking-label uppercase">
+          <span
+            aria-hidden
+            className={cn(
+              "size-2 rounded-full",
+              inUse ? "bg-paper" : "border border-silver-500",
+            )}
+          />
+          <span className={inUse ? "text-paper" : "text-silver-500"}>
+            {inUse ? `Main · ${demoCard.status}` : demoCard.status}
+          </span>
         </p>
       </div>
       <p className="max-w-2xl text-sm leading-relaxed text-silver-400">

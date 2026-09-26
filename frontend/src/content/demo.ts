@@ -5,8 +5,7 @@ export const demoCard = {
   body: "Included so you can try Redline right away. Each account gets a few free requests a day (a review, a chat question or an insight counts as one).",
   privacy:
     "Demo requests go to Google Gemini's free tier, which may use them to improve Google's products. Don't upload private code with the demo.",
-  inUse: "In use: you haven't added your own model yet.",
-  notInUse: "Not in use: your own model is used instead, with no demo limit.",
+  status: "Used when you have no model",
 };
 
 export const demoLimitPanel = {
