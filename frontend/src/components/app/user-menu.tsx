@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
+import { logoutAction } from "@/app/(auth)/actions";
 import type { SessionUser } from "@/lib/types";
 
 interface UserMenuProps {
@@ -19,13 +19,6 @@ function initials(name: string): string {
 
 // Native popover: the browser handles open/close, Esc, click-outside and focus.
 export function UserMenu({ user }: UserMenuProps) {
-  const router = useRouter();
-
-  function signOut() {
-    // MOCK until C1: will call POST /api/auth/logout first.
-    router.push("/login");
-  }
-
   return (
     <>
       <button
@@ -47,14 +40,15 @@ export function UserMenu({ user }: UserMenuProps) {
             {user.email}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={signOut}
-          className="mt-1 flex h-9 w-full items-center gap-3 rounded-sm px-3 text-silver-300 transition-colors hover:bg-ink-850 hover:text-paper"
-        >
-          <LogOut aria-hidden className="size-4" strokeWidth={1.5} />
-          Sign out
-        </button>
+        <form action={logoutAction}>
+          <button
+            type="submit"
+            className="mt-1 flex h-9 w-full items-center gap-3 rounded-sm px-3 text-silver-300 transition-colors hover:bg-ink-850 hover:text-paper"
+          >
+            <LogOut aria-hidden className="size-4" strokeWidth={1.5} />
+            Sign out
+          </button>
+        </form>
       </div>
     </>
   );

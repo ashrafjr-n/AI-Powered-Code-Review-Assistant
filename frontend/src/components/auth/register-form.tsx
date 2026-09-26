@@ -1,24 +1,17 @@
 "use client";
 
 import { useActionState } from "react";
-import { useRouter } from "next/navigation";
+import { registerAction } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { FormError } from "@/components/ui/form-error";
 import { Input } from "@/components/ui/input";
-import { mockRegister } from "@/mocks/auth";
 import { PasswordInput } from "./password-input";
 
 interface RegisterFormProps {
   submitLabel: string;
   pendingLabel: string;
   passwordHint: string;
-}
-
-interface RegisterState {
-  name: string;
-  email: string;
-  error?: string;
 }
 
 // Limits match the backend schema (backend/src/auth/auth.schemas.ts).
@@ -29,23 +22,10 @@ export function RegisterForm({
   pendingLabel,
   passwordHint,
 }: RegisterFormProps) {
-  const router = useRouter();
-  const [state, formAction, pending] = useActionState(
-    async (
-      _previous: RegisterState,
-      formData: FormData,
-    ): Promise<RegisterState> => {
-      const name = String(formData.get("name") ?? "");
-      const email = String(formData.get("email") ?? "");
-      const result = await mockRegister();
-      if (!result.ok) {
-        return { name, email, error: result.error };
-      }
-      router.push("/projects");
-      return { name, email };
-    },
-    { name: "", email: "" },
-  );
+  const [state, formAction, pending] = useActionState(registerAction, {
+    name: "",
+    email: "",
+  });
 
   return (
     <form action={formAction} className="space-y-5">

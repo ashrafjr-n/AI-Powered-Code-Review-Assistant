@@ -1,18 +1,21 @@
 import { AppSidebar } from "@/components/app/app-sidebar";
 import { AppTopbar } from "@/components/app/app-topbar";
 import { getActiveProvider } from "@/mocks/providers";
-import { mockUser } from "@/mocks/session";
+import { getCurrentUser } from "@/lib/api/auth";
 
 // The signed-in app: sidebar + top bar around every page.
-// Route protection (proxy.ts) comes in C1.
+// proxy.ts sends signed-out visitors to /login; getCurrentUser() confirms the session with the backend.
 export default async function AppLayout({ children }: LayoutProps<"/">) {
-  const provider = await getActiveProvider();
+  const [user, provider] = await Promise.all([
+    getCurrentUser(),
+    getActiveProvider(),
+  ]);
 
   return (
     <div className="grid min-h-dvh lg:grid-cols-[240px_1fr]">
       <AppSidebar />
       <div className="flex min-w-0 flex-col">
-        <AppTopbar user={mockUser} provider={provider} />
+        <AppTopbar user={user} provider={provider} />
         <main id="main" className="flex-1 px-4 py-8 sm:px-8">
           {children}
         </main>

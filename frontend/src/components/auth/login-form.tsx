@@ -1,43 +1,29 @@
 "use client";
 
 import { useActionState } from "react";
-import { useRouter } from "next/navigation";
+import { loginAction } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { FormError } from "@/components/ui/form-error";
 import { Input } from "@/components/ui/input";
-import { mockSignIn } from "@/mocks/auth";
 import { PasswordInput } from "./password-input";
 
 interface LoginFormProps {
   submitLabel: string;
   pendingLabel: string;
+  /** Where to go after signing in (checked on the server). */
+  next?: string;
 }
 
-interface LoginState {
-  email: string;
-  error?: string;
-}
-
-export function LoginForm({ submitLabel, pendingLabel }: LoginFormProps) {
-  const router = useRouter();
-  const [state, formAction, pending] = useActionState(
-    async (_previous: LoginState, formData: FormData): Promise<LoginState> => {
-      const email = String(formData.get("email") ?? "");
-      const result = await mockSignIn();
-      if (!result.ok) {
-        // Keep the email, never send the password back into the form.
-        return { email, error: result.error };
-      }
-      router.push("/projects");
-      return { email };
-    },
-    { email: "" },
-  );
+export function LoginForm({ submitLabel, pendingLabel, next }: LoginFormProps) {
+  const [state, formAction, pending] = useActionState(loginAction, {
+    email: "",
+  });
 
   return (
     <form action={formAction} className="space-y-5">
       <FormError message={state.error} />
+      {next && <input type="hidden" name="next" value={next} />}
       <Field id="email" label="Email">
         <Input
           id="email"
