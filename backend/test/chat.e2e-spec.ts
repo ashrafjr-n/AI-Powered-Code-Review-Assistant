@@ -143,12 +143,17 @@ describe('Chat (e2e)', () => {
     expect(down.body.message).toContain('provider');
     fail = false;
 
+    // The list has titles only; one conversation brings its messages.
     const { body: sessions } = await owner.get(base).expect(200);
     expect(sessions).toHaveLength(1);
     expect(sessions[0].title).toBe(
       'Which file handles the database connection?',
     );
-    expect(sessions[0].messages).toMatchObject([
+    expect(sessions[0].messages).toBeUndefined();
+    const { body: session } = await owner
+      .get(`${base}/${sessionId}`)
+      .expect(200);
+    expect(session.messages).toMatchObject([
       { role: 'USER', content: 'Which file handles the database connection?' },
       { role: 'ASSISTANT', content: 'Answer #1', sources: ['src/db/pool.ts'] },
       { role: 'USER', content: 'And the login?' },
@@ -190,6 +195,8 @@ describe('Chat (e2e)', () => {
       })
       .expect(404);
     await other.get(base).expect(404);
+    await other.get(`${base}/${sessionId}`).expect(404);
+    await owner.get(`${base}/0190a000-0000-7000-8000-000000000000`).expect(404);
     await other
       .post(`${base}/messages`)
       .send({ sessionId, question: 'steal' })
