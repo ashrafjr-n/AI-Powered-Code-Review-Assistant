@@ -103,17 +103,20 @@ export async function sendChatAction(
     return { error: "Keep questions under 2000 characters.", question };
 
   // The backend checks that the project (and conversation) are yours.
+  const currentFile = String(formData.get("currentFile") ?? "") || undefined;
   let id: string;
   try {
-    const currentFile = String(formData.get("currentFile") ?? "") || undefined;
     id = await askQuestion(projectId, sessionId, question, currentFile);
   } catch (error) {
     return { ...failure(error), question };
   }
   // Layout too: the provider pill shows how many demo requests are left.
   revalidatePath("/", "layout");
+  // Keep the open file: without it the workspace falls back to README.
   if (id !== sessionId)
-    redirect(workspaceHref(projectId, { tab: "chat", chat: id }));
+    redirect(
+      workspaceHref(projectId, { tab: "chat", chat: id, file: currentFile }),
+    );
   return {};
 }
 
