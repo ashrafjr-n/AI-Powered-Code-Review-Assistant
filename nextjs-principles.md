@@ -59,6 +59,7 @@ Use `useEffect` only to sync with something outside React: a DOM API, a subscrip
 - Use `memo`, `useMemo` and `useCallback` only after you have measured a real problem. Using them everywhere just adds noise.
 - Keep big files out of the first page load.
 - Every list item gets a stable, unique `key`. Use the index only when the list never changes order.
+- A scroll box (`overflow-auto`) that holds `sr-only` text or other absolute elements must also be `relative`. Otherwise those elements are placed against the page, not the box, and a long list makes the page taller with empty space. (This happened in the file tree with a long project.)
 
 ## 9. Errors and edge cases
 
