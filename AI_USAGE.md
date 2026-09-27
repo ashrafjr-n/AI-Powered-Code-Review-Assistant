@@ -133,3 +133,9 @@ The most important decisions, and what we did not choose:
 ## What I learned
 
 AI makes writing code much faster, so the real work moves to **deciding, reviewing and testing**. The best results came from clear rules, small steps, asking for options before code, and checking changes before accepting them.
+
+## Time spent
+
+The assessment was completed in about **12 hours of focused work** over **1.5 days**, instead of the **3 days** that were given: around 8 hours on the first day and around 4 hours on the second.
+
+**AI is the main reason it was this fast.** It did most of the typing, so my time went into planning, decisions, reviews and testing, instead of writing every line by hand.
