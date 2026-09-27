@@ -10,7 +10,13 @@ export class PrismaService
 {
   constructor() {
     super({
-      adapter: new PrismaPg({ connectionString: requireEnv('DATABASE_URL') }),
+      adapter: new PrismaPg({
+        connectionString: requireEnv('DATABASE_URL'),
+        // pg closes idle connections after 10 s, so the next click paid a new TLS
+        // handshake to Neon. 60 s stays well below Neon's ~5 min suspend, so a pooled
+        // connection is closed by us before Neon can drop it.
+        idleTimeoutMillis: 60_000,
+      }),
     });
   }
 
