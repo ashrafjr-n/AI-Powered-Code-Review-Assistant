@@ -146,6 +146,8 @@ export interface ProviderInput {
   model: string;
   /** Empty = keep the stored key (on edit) or no key (local servers). */
   apiKey: string;
+  /** Edit only: forget the stored key. */
+  removeApiKey?: boolean;
 }
 
 /** Result of "Test connection" (GET {baseUrl}/models on the backend). */
