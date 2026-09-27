@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { issueMarkers } from "./issue-markers.ts";
+import { markersFor } from "./issue-markers.ts";
 import type { Review } from "./types";
 
 const review = (
@@ -25,7 +25,7 @@ const review = (
   ...extra,
 });
 
-test("issueMarkers uses the newest review of the file and keeps the worst severity per line", () => {
+test("markersFor keeps the worst severity per line and only this file", () => {
   const reviews = [
     review(
       "new",
@@ -68,29 +68,10 @@ test("issueMarkers uses the newest review of the file and keeps the worst severi
       ],
     ),
   ];
-  const markers = issueMarkers(reviews, "a.ts", 1);
+  const markers = markersFor(reviews[0].issues, "a.ts");
   assert.deepEqual(
     [...markers.entries()],
     [[3, { severity: "CRITICAL", titles: ["Slow loop", "SQL injection"] }]],
   );
-  assert.equal(issueMarkers(reviews, "c.ts", 1).size, 0);
-});
-
-test("issueMarkers skips diff reviews and reviews of older code", () => {
-  const issue = (line: number) => ({
-    title: `Line ${line}`,
-    description: "",
-    severity: "HIGH" as const,
-    filePath: "a.ts",
-    line,
-  });
-  const reviews = [
-    // Newest: a diff review where a.ts is the "before" file (no issues for it).
-    review("diff", ["a.ts", "b.ts"], [], { scope: "DIFF" }),
-    review("full", ["a.ts"], [issue(4)]),
-    review("old-upload", ["a.ts"], [issue(9)], { codeVersion: 0 }),
-  ];
-  assert.deepEqual([...issueMarkers(reviews, "a.ts", 1).keys()], [4]);
-  // After a new upload (version 2) no review matches: no dots at all.
-  assert.equal(issueMarkers(reviews, "a.ts", 2).size, 0);
+  assert.equal(markersFor(reviews[0].issues, "c.ts").size, 0);
 });

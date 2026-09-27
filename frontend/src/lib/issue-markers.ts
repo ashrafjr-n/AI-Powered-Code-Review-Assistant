@@ -8,7 +8,11 @@ export interface LineMarker {
   titles: string[];
 }
 
-/** Dots for one file from a list of issues: the worst severity per line wins. */
+/**
+ * Dots for one file from a list of issues: the worst severity per line wins.
+ * Which review to use (the newest full review of this file in the current code) is
+ * asked from the backend: GET /reviews?file=…&codeVersion=…&pageSize=1.
+ */
 export function markersFor(
   issues: Review["issues"],
   path: string,
@@ -27,24 +31,4 @@ export function markersFor(
     });
   }
   return markers;
-}
-
-/**
- * Gutter dots for one file in the code viewer: the issues of the NEWEST review that
- * read the whole file in the current code. Skipped: reviews of older uploads (their
- * lines may have moved) and diff reviews (they only looked at changed lines, and the
- * "before" file has no issues). `reviews` = newest first.
- */
-export function issueMarkers(
-  reviews: Review[],
-  path: string,
-  codeVersion: number,
-): Map<number, LineMarker> {
-  const latest = reviews.find(
-    (review) =>
-      review.scope !== "DIFF" &&
-      review.codeVersion === codeVersion &&
-      review.filePaths.includes(path),
-  );
-  return markersFor(latest?.issues ?? [], path);
 }

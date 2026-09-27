@@ -333,6 +333,16 @@ describe('Reviews (e2e)', () => {
     const unknown = await diff(['login.ts', 'nope.ts']).expect(400);
     expect(unknown.body.message).toContain('No file called "nope.ts"');
 
+    // Issue dots ignore diff reviews too (they only looked at changed lines).
+    expect(
+      (
+        await owner
+          .get('/api/reviews')
+          .query({ file: 'src/login.v2.ts' })
+          .expect(200)
+      ).body.total,
+    ).toBe(0);
+
     // Project cards ignore diff reviews: they only looked at one change.
     const card = async () =>
       (await owner.get(`/api/projects/${project.id}`).expect(200)).body;
