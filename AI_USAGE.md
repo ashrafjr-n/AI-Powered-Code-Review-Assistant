@@ -44,7 +44,7 @@ I did not ask the AI to "build the app". I built a process around it:
 Real prompts from the project. Many were written in Arabic; these are English translations.
 
 **Starting and continuing**
-> Read CLAUDE.md, vibe.md and the assessment brief before we start.
+> Read CLAUDE.md, nextjs-principles.md, nest-principles.md and the assessment brief before we start.
 
 > Continue. *(Open the plan and do the next unchecked step.)*
 
@@ -52,7 +52,7 @@ Real prompts from the project. Many were written in Arabic; these are English tr
 > Check the whole system, but don't change anything. Just inspect it, take notes and make a plan. Hunt for any logic mistakes in the project. Your main reference is the assessment brief. Be ready to discuss with me and justify every decision you make.
 
 **Fixing with care**
-> Fix all the problems in order, slowly, don't rush. Test after you finish and make sure everything works. Do all the fixes on a new branch with a short, professional name. When you finish, I will merge it manually. Just tell me how.
+> Fix finding A only: a ZIP with two entries that clean to the same path (`a/b.ts` and `a//b.ts`) makes the upload fail with a 500. Work on a new branch, `fix/audit-findings`. First add a unit test in `unzip.spec.ts` that shows the crash, then fix it in `extractZip()` and show me that the test passes. After that, run the type check, lint, unit and e2e tests. Commit the fix on its own, and report what changed and the test results. Don't touch the other findings yet.
 
 **Thinking together about a design idea**
 > Would you advise me to remove the code card in the middle of the workspace, and open the code in a bigger popup when you hover a file? Don't change anything, just think with me.
@@ -121,6 +121,8 @@ The most important decisions, and what we did not choose:
 | A built-in demo model with daily limits | Reviewers can try Redline without a key | Bring your own key only |
 | Stop at three bonus features | The brief prefers a smaller, well-built app | GitHub import, test generator, tech-debt scanner |
 
+**A decision I made against the AI's advice: private files stay private.** During testing, one of my uploads included a `.dev.vars` file with (test) API keys. The review found it, but that also meant the keys had been saved in our database and sent to the demo model. I asked for secret files (`.env`, keys, credentials) to be hidden completely. The AI pushed back: the brief lists hardcoded credentials as a Security review focus, so hiding these files would make the security review weaker. I kept my decision. As a user, I would never upload code to a site unless it promised to protect my secrets, and Redline makes that promise. If I found out that it read my `.env` after I uploaded it by mistake, I would stop trusting it, and so would anyone else. We found a middle way that keeps the promise and still helps the review: secret files are uploaded empty and stored by path only, and the model gets their names, so it can still warn "you committed an env file". Keys written inside normal code are replaced with `‹redacted›` on the same line, so it can still report "hardcoded secret on line 3" without ever seeing the key.
+
 ## Known limits
 
 - **Logout** deletes the cookie, but the token stays valid until it expires (7 days).
@@ -128,6 +130,7 @@ The most important decisions, and what we did not choose:
 - **No monitoring** beyond the hosting platforms' logs.
 - **No load test:** only the worst-case upload was measured.
 - **Chat search is keyword-based,** so it works best in English.
+- **LM Studio was not tested directly.** The brief asks for LM Studio support, but LM Studio doesn't run on the Intel Mac I built this on. I tested local models with **Ollama** instead. Both use the same OpenAI-compatible API, so LM Studio runs through the exact same code (only the base URL changes).
 
 ## What I learned
 
