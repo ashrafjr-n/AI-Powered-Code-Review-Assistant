@@ -1,9 +1,17 @@
 import type { MessageRole } from '../generated/prisma/client.js';
 
 // Small budgets so local models (4k–8k tokens of context) still get the question.
+// Worst case: 3 files × 8k + 300 paths + 6 old messages × 2k + a 2k question
+// ≈ 50k characters, about the size of a review.
 const MAX_FILE_CHARS = 8_000;
 const MAX_LISTED_PATHS = 300;
 export const HISTORY_MESSAGES = 6;
+// Old answers can be long (up to 20k): only their start is sent again.
+const MAX_HISTORY_MESSAGE_CHARS = 2_000;
+
+function cut(text: string, max: number, note: string): string {
+  return text.length > max ? `${text.slice(0, max)}\n${note}` : text;
+}
 
 type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
 
@@ -32,10 +40,10 @@ export function buildChatMessages(input: {
     `All files in the project:\n${listed.join('\n')}${more > 0 ? `\n…and ${more} more` : ''}`,
     input.sources.length
       ? input.sources
-          .map((file) => {
-            const cut = file.content.length > MAX_FILE_CHARS;
-            return `=== FILE: ${file.path} ===\n${file.content.slice(0, MAX_FILE_CHARS)}${cut ? '\n[…file cut…]' : ''}`;
-          })
+          .map(
+            (file) =>
+              `=== FILE: ${file.path} ===\n${cut(file.content, MAX_FILE_CHARS, '[…file cut…]')}`,
+          )
           .join('\n\n')
       : 'No file matched the question by keywords.',
   ].join('\n\n');
@@ -44,7 +52,7 @@ export function buildChatMessages(input: {
     { role: 'system', content: `${system}\n\n${context}` },
     ...input.history.map((message): ChatMessage => ({
       role: message.role === 'USER' ? 'user' : 'assistant',
-      content: message.content,
+      content: cut(message.content, MAX_HISTORY_MESSAGE_CHARS, '[…cut…]'),
     })),
     { role: 'user', content: input.question },
   ];
