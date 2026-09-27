@@ -48,7 +48,9 @@ export function DiffView({ patch, before, after, markers }: DiffViewProps) {
           +{added} −{removed}
         </span>
       </summary>
-      <div className="max-h-[480px] overflow-auto">
+      {/* `relative`: the rows' screen-reader words (sr-only, position: absolute) stay in
+          this scroll box instead of making the page taller. */}
+      <div className="relative max-h-[480px] overflow-auto">
         <table className="w-full border-collapse font-mono text-xs leading-5">
           <caption className="sr-only">
             Changes from {before} to {after}
