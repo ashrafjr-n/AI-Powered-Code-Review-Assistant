@@ -324,5 +324,7 @@ On the backend, set `NODE_ENV=production` and fresh values for `JWT_SECRET`, `EN
     <img src="docs/readme/banner.png" alt="Redline: code review, on your terms" width="100%">
   </a>
   <br><br>
-  <sub>Built by Ashraf for the Full Stack Engineering Internship assessment.</sub>
+  <sub>Built by Ashraf · © 2026 All rights reserved.</sub>
+  <br>
+  <sub>(Redline is under active development and keeps improving.)</sub>
 </div>
