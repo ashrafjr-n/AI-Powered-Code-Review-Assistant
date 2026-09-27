@@ -98,6 +98,7 @@ model Review {
   issues          Json // [{ title, description, severity, filePath?, line? }] validated with Zod
   recommendations Json // string[] validated with Zod
   highestSeverity Severity? // null when no issues; stored for list badges and filtering
+  searchText      String      @default("") @db.Text // lowercase summary + file paths + issue titles, for history search
   providerName    String // snapshot, so history survives provider edits/deletes
   model           String
   createdAt       DateTime    @default(now())
