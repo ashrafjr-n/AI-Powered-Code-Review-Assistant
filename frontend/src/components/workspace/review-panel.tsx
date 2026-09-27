@@ -13,7 +13,10 @@ interface ReviewPanelProps {
   paths: string[];
   /** The model in use looks local (context note in the form). */
   localModel: boolean;
+  /** The newest few reviews of this project. */
   reviews: Review[];
+  /** How many reviews the project has in all. */
+  total: number;
   plan: ReviewPlan | null;
 }
 
@@ -23,6 +26,7 @@ export function ReviewPanel({
   paths,
   localModel,
   reviews,
+  total,
   plan,
 }: ReviewPanelProps) {
   return (
@@ -47,7 +51,7 @@ export function ReviewPanel({
           </p>
         ) : (
           <ul className="space-y-2">
-            {reviews.slice(0, 5).map((review) => {
+            {reviews.map((review) => {
               const severity = highestSeverity(review.issues);
               return (
                 <li key={review.id}>
@@ -77,12 +81,12 @@ export function ReviewPanel({
             })}
           </ul>
         )}
-        {reviews.length > 5 && (
+        {total > reviews.length && (
           <Link
             href={`/reviews?project=${projectId}`}
             className="inline-block font-mono text-xs text-silver-400 underline decoration-line-strong underline-offset-4 hover:text-paper"
           >
-            See all {reviews.length} reviews →
+            See all {total} reviews →
           </Link>
         )}
       </section>

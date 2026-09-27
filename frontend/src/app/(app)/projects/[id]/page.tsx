@@ -17,7 +17,7 @@ import { UploadDropzone } from "@/components/workspace/upload-dropzone";
 import { UploadRules } from "@/components/workspace/upload-rules";
 import { UploadSummary } from "@/components/workspace/upload-summary";
 import { buildFileTree } from "@/lib/file-tree";
-import { issueMarkers } from "@/lib/issue-markers";
+import { markersFor } from "@/lib/issue-markers";
 import { PANE_COOKIE, parsePaneCookie } from "@/lib/pane-layout";
 import {
   firstParam,
@@ -25,13 +25,26 @@ import {
   parseTab,
   workspaceHref,
 } from "@/lib/workspace-url";
-import { listChatSessions } from "@/lib/api/chat";
+import { getChatSession, listChatSessions } from "@/lib/api/chat";
 import { getFile, listFiles } from "@/lib/api/files";
 import { listInsights } from "@/lib/api/insights";
 import { getProject } from "@/lib/api/projects";
 import { getActiveProvider } from "@/lib/api/providers";
 import { isLikelyLocalModel } from "@/lib/providers";
 import { getReviewPlan, listReviews } from "@/lib/api/reviews";
+
+const RECENT_REVIEWS = 5;
+
+/** The conversation list and the open one: ?chat=<id>, "new", or the newest. */
+async function loadChat(projectId: string, chatParam: string | undefined) {
+  const sessions = await listChatSessions(projectId);
+  const activeId =
+    chatParam === "new"
+      ? undefined
+      : (sessions.find((s) => s.id === chatParam) ?? sessions[0])?.id;
+  const active = activeId ? await getChatSession(projectId, activeId) : null;
+  return { sessions, active };
+}
 
 export async function generateMetadata({
   params,
@@ -69,30 +82,36 @@ export default async function WorkspacePage({
     files[0];
   const line = Number(firstParam(query.line)) || undefined;
 
-  const [file, reviews, sessions, insights, plan, provider] = await Promise.all(
-    [
+  // Every file click renders this page again, so only what is on screen is loaded:
+  // the file, its issue dots, and the data of the open tab.
+  const [file, dots, recent, chat, insights, plan, provider] =
+    await Promise.all([
       // Sensitive files have no content to load (the backend refuses anyway).
       selected.sensitive ? null : getFile(id, selected.path),
-      listReviews({ projectId: id }),
-      listChatSessions(id),
-      listInsights(id),
+      // Gutter dots: the newest review that read this whole file in the current code.
+      selected.sensitive
+        ? null
+        : listReviews({
+            projectId: id,
+            file: selected.path,
+            codeVersion: project.codeVersion,
+            pageSize: 1,
+          }),
+      tab === "review"
+        ? listReviews({ projectId: id, pageSize: RECENT_REVIEWS })
+        : null,
+      tab === "chat" ? loadChat(id, firstParam(query.chat)) : null,
+      tab === "insights" ? listInsights(id) : null,
       tab === "review" ? getReviewPlan(id) : null,
       // Cached: the layout already asked for it (provider pill).
       getActiveProvider(),
-    ],
-  );
+    ]);
   // Only possible if the files were replaced between the two requests.
   if (!file && !selected.sensitive) notFound();
   // A generated document takes the wide middle pane while the Insights tab is open.
-  const openDoc =
-    tab === "insights"
-      ? insights.find((insight) => insight.kind === parseDoc(query.doc))
-      : undefined;
-  const chatParam = firstParam(query.chat);
-  const activeChat =
-    chatParam === "new"
-      ? null
-      : (sessions.find((s) => s.id === chatParam) ?? sessions[0] ?? null);
+  const openDoc = insights?.find(
+    (insight) => insight.kind === parseDoc(query.doc),
+  );
 
   const tree = (
     <FileTree
@@ -147,7 +166,7 @@ export default async function WorkspacePage({
             <CodeViewer
               file={file}
               highlightLine={file.path === requested ? line : undefined}
-              markers={issueMarkers(reviews, file.path, project.codeVersion)}
+              markers={markersFor(dots?.items[0]?.issues ?? [], file.path)}
             />
           ) : (
             <HiddenFileNotice path={selected.path} />
@@ -161,7 +180,7 @@ export default async function WorkspacePage({
         >
           <PanelTabs projectId={id} active={tab} file={selected.path} />
           <div className="min-h-0 flex-1 overflow-auto">
-            {tab === "review" && (
+            {recent && (
               <ReviewPanel
                 projectId={id}
                 currentFile={file?.path}
@@ -169,19 +188,20 @@ export default async function WorkspacePage({
                 paths={files
                   .filter((entry) => !entry.sensitive)
                   .map((entry) => entry.path)}
-                reviews={reviews}
+                reviews={recent.items}
+                total={recent.total}
                 plan={plan}
               />
             )}
-            {tab === "chat" && (
+            {chat && (
               <ChatPanel
                 projectId={id}
-                sessions={sessions}
+                sessions={chat.sessions}
                 currentFile={file?.path}
-                active={activeChat}
+                active={chat.active}
               />
             )}
-            {tab === "insights" && (
+            {insights && (
               <InsightsPanel
                 projectId={id}
                 insights={insights}
