@@ -1,12 +1,33 @@
 import "server-only";
-import type { ChatSession } from "@/lib/types";
-import { apiFetch } from "./client";
+import type { ChatSession, ChatSessionSummary } from "@/lib/types";
+import { ApiError, apiFetch } from "./client";
 
-/** Newest conversation first, each with its messages (oldest first). */
-export function listChatSessions(projectId: string): Promise<ChatSession[]> {
-  return apiFetch<ChatSession[]>(
+/** Newest conversation first, titles only. */
+export function listChatSessions(
+  projectId: string,
+): Promise<ChatSessionSummary[]> {
+  return apiFetch<ChatSessionSummary[]>(
     `/projects/${encodeURIComponent(projectId)}/chats`,
   );
+}
+
+/** One conversation with its messages; null when it doesn't exist (or isn't yours). */
+export async function getChatSession(
+  projectId: string,
+  sessionId: string,
+): Promise<ChatSession | null> {
+  try {
+    return await apiFetch<ChatSession>(
+      `/projects/${encodeURIComponent(projectId)}/chats/${encodeURIComponent(sessionId)}`,
+    );
+  } catch (error) {
+    if (
+      error instanceof ApiError &&
+      (error.status === 404 || error.status === 400)
+    )
+      return null;
+    throw error;
+  }
 }
 
 /** Waits for the model. sessionId null = start a new conversation. */

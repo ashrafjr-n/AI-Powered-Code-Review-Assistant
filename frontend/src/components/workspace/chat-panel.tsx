@@ -4,7 +4,7 @@ import remarkGfm from "remark-gfm";
 import { FileCode2, Plus } from "lucide-react";
 import { buttonClass } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import type { ChatSession } from "@/lib/types";
+import type { ChatSession, ChatSessionSummary } from "@/lib/types";
 import { workspaceHref } from "@/lib/workspace-url";
 import { ChatComposer } from "./chat-composer";
 
@@ -16,7 +16,7 @@ const SUGGESTIONS = [
 
 interface ChatPanelProps {
   projectId: string;
-  sessions: ChatSession[];
+  sessions: ChatSessionSummary[];
   /** The file open in the code viewer; always sent as context. */
   currentFile?: string;
   /** null = a new, empty conversation. */
