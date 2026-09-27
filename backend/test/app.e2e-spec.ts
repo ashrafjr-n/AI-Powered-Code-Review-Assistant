@@ -32,6 +32,12 @@ describe('API (e2e)', () => {
       .expect({ status: 'ok' });
   });
 
+  it('sends nosniff and hides the framework', async () => {
+    const res = await request(app.getHttpServer()).get('/api/health');
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+    expect(res.headers['x-powered-by']).toBeUndefined();
+  });
+
   it('rejects protected routes without a login', () => {
     return request(app.getHttpServer()).get('/api/auth/me').expect(401);
   });
