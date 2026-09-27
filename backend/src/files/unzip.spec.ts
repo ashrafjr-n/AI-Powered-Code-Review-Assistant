@@ -62,6 +62,14 @@ describe('extractZip', () => {
     expect(skipped.ignored).toBe(1);
   });
 
+  it('refuses too many files before inflating them', () => {
+    const entries: Record<string, Uint8Array> = {};
+    for (let i = 0; i <= 2000; i++) entries[`src/f${i}.ts`] = strToU8('x');
+    expect(() => extractZip(zipSync(entries))).toThrow(
+      'more than 2000 source files',
+    );
+  });
+
   it('throws a friendly error for broken or empty archives', () => {
     expect(() => extractZip(strToU8('not a zip'))).toThrow(InvalidZipError);
     expect(() => extractZip(zipSync({ 'a.png': new Uint8Array([0]) }))).toThrow(

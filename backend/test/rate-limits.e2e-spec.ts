@@ -1,3 +1,4 @@
+import { strToU8, zipSync } from 'fflate';
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
@@ -11,7 +12,11 @@ const SECRET = 'e2e-bff-secret'; // set in setup-e2e.ts
 describe('Rate limits (e2e)', () => {
   let app: INestApplication<App>;
   const stamp = Date.now();
-  const emails = [`rl-a-${stamp}@test.dev`, `rl-b-${stamp}@test.dev`];
+  const emails = [
+    `rl-a-${stamp}@test.dev`,
+    `rl-b-${stamp}@test.dev`,
+    `rl-c-${stamp}@test.dev`,
+  ];
   const password = 'password123';
 
   const login = (email: string, pass: string, ip?: string, secret = SECRET) => {
@@ -53,6 +58,25 @@ describe('Rate limits (e2e)', () => {
     expect(statuses.filter((s) => s === 200)).toHaveLength(100);
     expect(statuses.at(-1)).toBe(429);
     await b.get('/api/projects').expect(200); // user B has their own budget
+  });
+
+  it('allows 10 uploads a minute per user', async () => {
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/register')
+      .send({ email: emails[2], password, name: 'Rate' })
+      .expect(201);
+    const { body: project } = await agent
+      .post('/api/projects')
+      .send({ name: 'Uploads' })
+      .expect(201);
+    const zip = Buffer.from(zipSync({ 'a.ts': strToU8('const a = 1;') }));
+    const upload = () =>
+      agent
+        .post(`/api/projects/${project.id}/files`)
+        .attach('file', zip, 'code.zip');
+    for (let i = 0; i < 10; i++) await upload().expect(201);
+    await upload().expect(429);
   });
 
   it('uses X-Client-IP only with the right secret', async () => {
