@@ -11,6 +11,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import { CurrentUserId } from '../auth/current-user-id.decorator.js';
 import {
   fileContentQuerySchema,
@@ -36,7 +37,9 @@ export class FilesController {
 
   // multipart/form-data with one "file" field. Kept in memory (max 10 MB), never on disk.
   // Multer answers 413 by itself when the file is too large.
+  // Unzipping is the heaviest work on this server: at most 10 uploads a minute per user.
   @Post()
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @UseInterceptors(
     FileInterceptor('file', { limits: { fileSize: MAX_ZIP_BYTES, files: 1 } }),
   )
