@@ -27,7 +27,7 @@ I did not ask the AI to "build the app". I built a process around it:
 1. **Read the brief first.** I turned it into a step-by-step plan (a checklist file). Every session started from the first unchecked step.
 2. **Rules before code.** I wrote working rules for the AI and kept them in local files it had to read at the start of every session:
    - **How we work:** short reports after each task, many small commits, never push, ask when a request is unclear, and tell me when I am about to do something wrong.
-   - **Engineering principles:** Server Components by default, no logic inside JSX, strong types (never `any`), shared primitives instead of copy-paste.
+   - **Engineering principles:** Server Components by default, no logic inside JSX, strong types (never `any`), shared primitives instead of copy-paste. These two files are in the repo: [nextjs-principles.md](nextjs-principles.md) (frontend) and [nest-principles.md](nest-principles.md) (backend).
    - **Design rules:** I chose the direction (black, white and silver, with red used only where a human must look; Sourcegraph as a reference for principles, not looks). The AI turned it into a design checklist that every page had to pass.
 3. **Small parts, checked one by one.** The frontend was built page by page, and each page part by part. After each part the AI stopped, and I checked it in the browser before we continued.
 4. **A second AI as a reviewer.** When Opus finished a file or a part, I gave it to **Claude Sonnet** for review and criticism. Sonnet had principles files: Next.js principles for the frontend, NestJS principles for the backend, and so on. When Sonnet found a problem, I passed it back to Opus, and Opus fixed what needed fixing. One model builds, another one checks.
