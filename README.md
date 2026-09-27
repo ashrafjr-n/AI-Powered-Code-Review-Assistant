@@ -317,6 +317,7 @@ On the backend, set `NODE_ENV=production` and fresh values for `JWT_SECRET`, `EN
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Frontend and backend architecture, database design, AI integration flow, trade-offs |
 | [AUDIT.md](AUDIT.md) | Security and performance checks: what was tested and the results |
 | [AI_USAGE.md](AI_USAGE.md) | AI tools, prompts, generated vs. hand-written code, engineering decisions |
+| [nextjs-principles.md](nextjs-principles.md), [nest-principles.md](nest-principles.md) | The engineering rules I gave the AI for the frontend and the backend |
 | [backend/README.md](backend/README.md) | API modules, routes, scripts, Render setup |
 | [frontend/README.md](frontend/README.md) | App structure, data flow, scripts, Vercel setup |
 
