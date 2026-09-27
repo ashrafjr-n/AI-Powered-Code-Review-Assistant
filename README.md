@@ -20,7 +20,7 @@ Then ask questions about the code, compare two files, or generate its docs. Work
 ![TypeScript](https://img.shields.io/badge/TypeScript-07080a?style=flat-square&logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS_4-07080a?style=flat-square&logo=tailwindcss&logoColor=white)
 
-[Live demo](https://redline-tau-eight.vercel.app) · [Architecture](ARCHITECTURE.md) · [AI usage](AI_USAGE.md) · [Backend](backend/README.md) · [Frontend](frontend/README.md)
+[Live demo](https://redline-tau-eight.vercel.app) · [Architecture](ARCHITECTURE.md) · [Audit](AUDIT.md) · [AI usage](AI_USAGE.md) · [Backend](backend/README.md) · [Frontend](frontend/README.md)
 
 </div>
 
