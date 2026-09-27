@@ -66,7 +66,7 @@ Every requirement of the assessment brief, and where to find it:
 | **Code explorer** | Folder tree, file preview and syntax highlighting (Shiki). Issue dots in the gutter, and links jump to the exact line |
 | **AI review engine** | Review **one file, selected files or the whole project**. The report has a summary, issues, recommendations and severity (**Critical, High, Medium, Low**) |
 | **Review templates** | Three lenses: **Security**, **Performance** and **Code Quality** |
-| **Review history** | Every review is saved. Search summaries, issues and file paths, filter by lens, worst severity and project, and open the full report |
+| **Review history** | Every review is saved. Search summaries, issues and file paths, filter by lens, worst severity and project, 20 per page, and open the full report |
 | **AI chat with code** | Ask questions about the uploaded code. Answers use the open file and the files that match the question, and list their sources |
 | **Configurable providers** | Base URL, API key and model are user settings: OpenAI, LM Studio, Ollama, OpenRouter, Gemini, Groq or any OpenAI-compatible endpoint. Nothing is hardcoded |
 
@@ -285,6 +285,7 @@ On the backend, set `NODE_ENV=production` and fresh values for `JWT_SECRET`, `EN
 - **Private files:** `.env`, private keys and credential files are uploaded **empty**. Only their names are stored, and they are never opened or sent to a model.
 - **Secrets in code:** API keys, tokens and passwords written inside files are replaced with `‹redacted›` before saving.
 - **Model output is untrusted:** reviews are validated with Zod, and chat answers and docs render as Markdown without raw HTML.
+- **Security headers:** a Content-Security-Policy that only allows Redline's own origin and forbids framing, `nosniff`, and no `X-Powered-By`.
 - **No secrets in git:** only `.env.example` files are tracked.
 
 ## Limits
@@ -294,7 +295,8 @@ On the backend, set `NODE_ENV=production` and fresh values for `JWT_SECRET`, `EN
 | Picked ZIP (slimmed in the browser) | 200 MB |
 | Upload after slimming | 10 MB |
 | One file | 512 KB (larger files are skipped as data) |
-| Files per project | 2,000 |
+| Files per project | 2,000 (checked before unpacking) |
+| Uploads | 10 per minute per user |
 | One review | 48,000 characters of code with your own model, 160,000 with the demo. Whole files, source first; the report says how many were left out |
 | Model time | 270 s per request |
 | Demo model | 10 requests per account per day, 200 per day for the whole site |
