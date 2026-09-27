@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LinkPending } from "@/components/ui/link-pending";
 import { cn } from "@/lib/cn";
 import { workspaceHref, type WorkspaceTab } from "@/lib/workspace-url";
 
@@ -24,13 +25,15 @@ export function PanelTabs({ projectId, active, file }: PanelTabsProps) {
           href={workspaceHref(projectId, { tab, file })}
           aria-current={tab === active ? "page" : undefined}
           className={cn(
-            "flex-1 border-b-2 py-3 text-center font-mono text-xs tracking-label uppercase transition-colors",
+            "relative flex-1 border-b-2 py-3 text-center font-mono text-xs tracking-label uppercase transition-colors",
             tab === active
               ? "border-paper text-paper"
               : "border-transparent text-silver-500 hover:text-paper",
           )}
         >
           {labels[tab]}
+          {/* The panel renders on the server: show the click was heard. */}
+          <LinkPending className="absolute inset-x-0 -bottom-0.5 h-0.5" />
         </Link>
       ))}
     </nav>
