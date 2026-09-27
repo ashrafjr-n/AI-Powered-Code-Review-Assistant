@@ -12,13 +12,17 @@ function reviewStatus(project: ProjectSummary): string | null {
   if (!project.lastReview) {
     return project.fileCount === 0 ? "No code yet" : "Not reviewed yet";
   }
+  // Old counts would describe code that is gone.
+  if (project.lastReview.outdated) return "Code changed since last review";
   return project.lastReview.severity ? null : "Clean last review";
 }
 
 // The whole card is clickable (stretched link); the delete button sits above it.
 export function ProjectCard({ project }: ProjectCardProps) {
   const status = reviewStatus(project);
-  const severity = project.lastReview?.severity;
+  const severity = project.lastReview?.outdated
+    ? null
+    : project.lastReview?.severity;
 
   return (
     <li className="group relative flex flex-col rounded-md border border-line bg-ink-900 p-5 transition-colors focus-within:border-line-strong hover:border-line-strong">

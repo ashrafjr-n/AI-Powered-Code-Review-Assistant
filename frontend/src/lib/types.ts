@@ -21,6 +21,8 @@ export interface ProjectSummary {
     severity: Severity | null;
     createdAt: string;
     counts: Record<Severity, number>;
+    /** The code was uploaded again after this review. */
+    outdated: boolean;
   };
 }
 
