@@ -12,6 +12,7 @@ export const runReviewSchema = z.object({
 export const listReviewsQuerySchema = z.object({
   q: z.string().trim().max(200).optional(),
   mode: mode.optional(),
+  // The review's worst issue (Review.highestSeverity), like the badge in lists.
   severity: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional(),
   projectId: z.uuid().optional(),
 });
