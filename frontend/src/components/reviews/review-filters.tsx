@@ -97,9 +97,10 @@ export function ReviewFilters({
         className={selectClass}
       >
         <option value="">Any severity</option>
+        {/* Filters by the review's worst issue, the same severity its badge shows. */}
         {SEVERITY_ORDER.map((value) => (
           <option key={value} value={value}>
-            {SEVERITY_LABEL[value]}
+            Worst: {SEVERITY_LABEL[value]}
           </option>
         ))}
       </select>
