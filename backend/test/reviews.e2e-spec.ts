@@ -198,25 +198,40 @@ describe('Reviews (e2e)', () => {
       .expect(502);
     expect(bad.body.message).toContain('did not return a valid review');
 
-    // History: filters and search.
-    const all = await owner.get('/api/reviews').expect(200);
-    expect(all.body).toHaveLength(2);
-    expect(
-      (await owner.get('/api/reviews').query({ mode: 'QUALITY' })).body,
-    ).toHaveLength(1);
-    expect(
-      (await owner.get('/api/reviews').query({ q: 'hardcoded' })).body,
-    ).toHaveLength(2);
-    expect(
-      (await owner.get('/api/reviews').query({ q: 'config.ts' })).body,
-    ).toHaveLength(1);
-    expect(
-      (await owner.get('/api/reviews').query({ severity: 'LOW' })).body,
-    ).toHaveLength(0);
+    // History: filters and search (in the database), one page at a time.
+    const history = async (query: Record<string, string | number> = {}) =>
+      (await owner.get('/api/reviews').query(query).expect(200)).body as {
+        items: { id: string }[];
+        total: number;
+      };
+    expect(await history()).toMatchObject({ total: 2 });
+    expect((await history()).items).toHaveLength(2);
+    expect((await history({ mode: 'QUALITY' })).total).toBe(1);
+    expect((await history({ q: 'HARDCODED' })).total).toBe(2); // issue title
+    expect((await history({ q: 'config.ts' })).total).toBe(1); // file path
+    expect((await history({ q: 'shop' })).total).toBe(2); // project name
+    expect((await history({ severity: 'LOW' })).total).toBe(0);
+    const [page1, page2] = [
+      await history({ pageSize: 1 }),
+      await history({ pageSize: 1, page: 2 }),
+    ];
+    expect(page1).toMatchObject({ total: 2 });
+    expect(page1.items).toHaveLength(1);
+    expect(page2.items[0].id).not.toBe(page1.items[0].id);
+    await owner.get('/api/reviews').query({ pageSize: 51 }).expect(400);
+    // The workspace's issue dots: reviews that read this file, of this upload.
+    expect((await history({ file: 'src/config.ts' })).total).toBe(1);
+    expect((await history({ file: 'src/app.ts' })).total).toBe(2);
+    expect((await history({ file: 'src/app.ts', codeVersion: 99 })).total).toBe(
+      0,
+    );
     await owner.get(`/api/reviews/${review.id}`).expect(200);
 
     // Other users see nothing.
-    expect((await other.get('/api/reviews').expect(200)).body).toEqual([]);
+    expect((await other.get('/api/reviews').expect(200)).body).toEqual({
+      items: [],
+      total: 0,
+    });
     await other.get(`/api/reviews/${review.id}`).expect(404);
     await other
       .post(run)
