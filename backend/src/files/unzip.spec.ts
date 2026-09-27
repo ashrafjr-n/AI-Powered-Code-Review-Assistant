@@ -37,6 +37,17 @@ describe('extractZip', () => {
     expect(extractZip(zip).files.map((file) => file.path)).toEqual(['ok.ts']);
   });
 
+  it('drops "./" at the start of entry names', () => {
+    const zip = zipSync({
+      './src/app.ts': strToU8('a'),
+      './README.md': strToU8('# App'),
+    });
+    expect(extractZip(zip).files.map((file) => file.path)).toEqual([
+      'README.md',
+      'src/app.ts',
+    ]);
+  });
+
   it('keeps one file when two entries clean to the same path', () => {
     const zip = zipSync({
       'src/a.ts': strToU8('first'),
