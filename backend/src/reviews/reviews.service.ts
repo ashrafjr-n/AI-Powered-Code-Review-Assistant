@@ -334,7 +334,8 @@ export class ReviewsService {
     const [rows, total] = await this.prisma.$transaction([
       this.prisma.review.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        // id breaks ties (uuid v7 is time-ordered), so pages never overlap.
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         skip: (query.page - 1) * query.pageSize,
         take: query.pageSize,
         select: reviewSelect,
