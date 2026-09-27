@@ -75,14 +75,16 @@ export interface ExtractResult {
 
 export class InvalidZipError extends Error {}
 
-/** "a\\b/../c" and "/etc/x" are rejected; returns a clean relative path or null. */
+/**
+ * "a\\b/../c" and "/etc/x" are rejected; "./src/a.ts" (some zip tools write this)
+ * becomes "src/a.ts". Returns a clean relative path or null.
+ */
 function safePath(name: string): string | null {
-  const parts = name.replaceAll('\\', '/').split('/').filter(Boolean);
-  if (
-    name.startsWith('/') ||
-    parts.some((part) => part === '..' || part === '.')
-  )
-    return null;
+  const parts = name
+    .replaceAll('\\', '/')
+    .split('/')
+    .filter((part) => part && part !== '.');
+  if (name.startsWith('/') || parts.includes('..')) return null;
   return parts.join('/');
 }
 
