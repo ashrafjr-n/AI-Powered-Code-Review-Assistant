@@ -34,10 +34,10 @@ function failure(error: unknown): ActionState {
   if (!(error instanceof ApiError)) throw error;
   const demo = demoNotice(error);
   if (demo) return { demo };
+  // The backend's own text says what is missing ("Project not found",
+  // "Conversation not found"…).
   if (error.status < 500 || error.status === 502)
-    return {
-      error: error.status === 404 ? "Project not found." : error.message,
-    };
+    return { error: error.message };
   throw error;
 }
 
