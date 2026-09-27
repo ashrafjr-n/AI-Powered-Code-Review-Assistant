@@ -138,6 +138,16 @@ export function extractZip(zip: Uint8Array): ExtractResult {
   const skipped: SkipCounts = { ignored: 0, binary: 0, tooLarge: 0 };
   const sensitive: ExtractedFile[] = [];
   const seen = new Set<string>();
+  // Files that would be stored, counted before anything is inflated, so a ZIP with a
+  // huge number of entries is refused early (binaries still count: they are only
+  // found after inflating).
+  let stored = 0;
+  const countFile = () => {
+    if (++stored > MAX_FILES)
+      throw new InvalidZipError(
+        `The ZIP has more than ${MAX_FILES} source files.`,
+      );
+  };
   let entries: Record<string, Uint8Array>;
   try {
     entries = unzipSync(zip, {
@@ -158,6 +168,7 @@ export function extractZip(zip: Uint8Array): ExtractResult {
         }
         // Never inflated: we keep the path so the tree shows the file exists.
         if (isSensitivePath(path)) {
+          countFile();
           sensitive.push({
             path,
             content: '',
@@ -170,6 +181,7 @@ export function extractZip(zip: Uint8Array): ExtractResult {
           skipped.tooLarge++;
           return false;
         }
+        countFile();
         // fflate inflates into a buffer of exactly originalSize, so a lying header
         // can't produce more bytes than we counted here.
         total += entry.originalSize;
@@ -205,10 +217,6 @@ export function extractZip(zip: Uint8Array): ExtractResult {
   if (files.length === 0)
     throw new InvalidZipError(
       'No readable source files were found in this ZIP.',
-    );
-  if (files.length + sensitive.length > MAX_FILES)
-    throw new InvalidZipError(
-      `The ZIP has more than ${MAX_FILES} source files.`,
     );
   return {
     files: stripSharedRoot([...files, ...sensitive]).sort((a, b) =>
