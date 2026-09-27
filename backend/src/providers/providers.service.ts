@@ -118,14 +118,16 @@ export class ProvidersService {
     input: ProviderInput,
   ): Promise<ProviderView> {
     const stored = await this.findOwned(userId, id);
-    // Same rule as testConnection: a new URL needs the key typed again.
+    // Same rule as testConnection: a new URL needs the key typed again (or removed),
+    // so a stored key is never sent to a URL it wasn't saved with.
     if (
       stored.apiKeyEncrypted &&
       !input.apiKey &&
+      !input.removeApiKey &&
       stored.baseUrl !== input.baseUrl
     )
       throw new BadRequestException(
-        'Enter the API key again when you change the base URL.',
+        'Enter the API key again when you change the base URL, or remove it.',
       );
     await this.checkUrl(input.baseUrl);
     const row = await this.prisma.aiProvider.update({
@@ -134,10 +136,10 @@ export class ProvidersService {
         name: input.name,
         baseUrl: input.baseUrl,
         model: input.model,
-        // Empty key = keep the stored one.
-        ...(input.apiKey && {
-          apiKeyEncrypted: encryptSecret(input.apiKey, this.key),
-        }),
+        // New key → replace. Empty key → keep the stored one, unless asked to remove it.
+        ...(input.apiKey
+          ? { apiKeyEncrypted: encryptSecret(input.apiKey, this.key) }
+          : input.removeApiKey && { apiKeyEncrypted: null }),
       },
       select: viewSelect,
     });
