@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import type {
   ReviewListItem,
+  ReviewPage,
   ReviewPlan,
   ReviewMode,
   ReviewScope,
@@ -14,18 +15,21 @@ export interface ReviewQuery {
   mode?: ReviewMode;
   severity?: Severity;
   projectId?: string;
+  /** Only reviews that read this whole file (no diff reviews): the issue dots. */
+  file?: string;
+  codeVersion?: number;
+  page?: number;
+  /** Default 20, max 50. */
+  pageSize?: number;
 }
 
-/** History search. The backend only returns the signed-in user's reviews. */
-export function listReviews(
-  query: ReviewQuery = {},
-): Promise<ReviewListItem[]> {
-  const params = new URLSearchParams(
-    Object.entries(query).filter((entry): entry is [string, string] =>
-      Boolean(entry[1]),
-    ),
-  );
-  return apiFetch<ReviewListItem[]>(`/reviews?${params}`);
+/** History search, one page. The backend only returns the signed-in user's reviews. */
+export function listReviews(query: ReviewQuery = {}): Promise<ReviewPage> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query))
+    // 0 is a real value (code version 0), only empty ones are left out.
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  return apiFetch<ReviewPage>(`/reviews?${params}`);
 }
 
 /** cache(): the report page and its metadata share one request. null = not found / not yours. */

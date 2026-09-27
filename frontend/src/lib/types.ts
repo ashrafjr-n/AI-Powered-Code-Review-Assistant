@@ -92,6 +92,12 @@ export interface ReviewListItem extends Review {
   projectName: string;
 }
 
+/** One page of history, newest first. `total` = all matches (for the pager). */
+export interface ReviewPage {
+  items: ReviewListItem[];
+  total: number;
+}
+
 export interface SessionUser {
   id: string;
   name: string;
@@ -109,11 +115,16 @@ export interface ChatMessage {
   createdAt: string;
 }
 
-export interface ChatSession {
+/** A conversation in the list (titles only). */
+export interface ChatSessionSummary {
   id: string;
   projectId: string;
   title: string;
   createdAt: string;
+}
+
+/** The open conversation, with its messages (oldest first). */
+export interface ChatSession extends ChatSessionSummary {
   messages: ChatMessage[];
 }
 

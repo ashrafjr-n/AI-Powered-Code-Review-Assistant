@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { History, SearchX } from "lucide-react";
 import { ReviewFilters } from "@/components/reviews/review-filters";
 import { ProjectReviewSection } from "@/components/reviews/project-review-section";
+import { ReviewPager, reviewsHref } from "@/components/reviews/review-pager";
 import { buttonClass } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
@@ -15,6 +17,8 @@ import { listProjects } from "@/lib/api/projects";
 import { listReviews } from "@/lib/api/reviews";
 
 export const metadata: Metadata = { title: "Reviews" };
+
+const PAGE_SIZE = 20;
 
 export default async function ReviewsPage({
   searchParams,
@@ -31,8 +35,21 @@ export default async function ReviewsPage({
     (project) => project.id === firstParam(query.project),
   )?.id;
   const filtered = Boolean(q || mode || severity || projectId);
-  const reviews = await listReviews({ q, mode, severity, projectId });
+  const page = Math.max(1, Math.floor(Number(firstParam(query.page))) || 1);
+  const { items: reviews, total } = await listReviews({
+    q,
+    mode,
+    severity,
+    projectId,
+    page,
+    pageSize: PAGE_SIZE,
+  });
+  const filters = { q, mode, severity, project: projectId };
+  const pages = Math.ceil(total / PAGE_SIZE);
+  // An old link past the last page (reviews were filtered away): go to the last one.
+  if (reviews.length === 0 && total > 0) redirect(reviewsHref(filters, pages));
   const groups = groupReviewsByProject(reviews);
+  const from = (page - 1) * PAGE_SIZE + 1;
 
   return (
     <div className="space-y-6">
@@ -48,8 +65,10 @@ export default async function ReviewsPage({
         projects={projects.map(({ id, name }) => ({ id, name }))}
       />
       <p aria-live="polite" className="font-mono text-xs text-silver-500">
-        {reviews.length} {reviews.length === 1 ? "review" : "reviews"}
-        {groups.length > 1 && ` in ${groups.length} projects`}
+        {total} {total === 1 ? "review" : "reviews"}
+        {pages > 1
+          ? ` · showing ${from}–${from + reviews.length - 1}`
+          : groups.length > 1 && ` in ${groups.length} projects`}
         {filtered && (
           <>
             {" · "}
@@ -72,6 +91,7 @@ export default async function ReviewsPage({
               defaultOpen={filtered}
             />
           ))}
+          <ReviewPager page={page} pages={pages} filters={filters} />
         </div>
       ) : filtered ? (
         <EmptyState
