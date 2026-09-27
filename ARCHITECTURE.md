@@ -136,7 +136,7 @@ frontend/src/
   proxy.ts             optimistic cookie check
 ```
 
-- **Server Components by default.** Pages are async and read data through `lib/api`. Client components exist only where state or events are needed (forms, dialogs, menus, the upload).
+- **Server Components by default.** Pages are async and read data through `lib/api`. Client components exist only where state or events are needed (forms, dialogs, menus, the upload), with one exception for speed: the file tree. Every file or tab click renders the workspace again, and a server-rendered tree re-sent every row (~830 KB for 565 files); now only the flat file list travels (~95 KB per click) and the browser draws the rows. Workspace links show a small pending hint (`useLinkStatus`) while the next view loads.
 - **Mutations are Server Actions.** They check input, confirm ownership through the backend, then call `revalidatePath`. Forms use `useActionState` and native HTML validation.
 - **The URL is the state.** The selected file, line, panel tab, chat session and open document (`?file=…&line=…&tab=insights&doc=setup`) all live in the query string, built by `workspaceHref()`. Reload, back/forward and shared links all work.
 - **Code highlighting** runs on the server (Shiki). The HTML is escaped by Shiki, so no user code runs.
