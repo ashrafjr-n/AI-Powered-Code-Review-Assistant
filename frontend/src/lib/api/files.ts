@@ -4,10 +4,22 @@ import { ApiError, apiFetch } from "./client";
 
 // Uploads don't live here: the browser sends the ZIP itself (see upload-dropzone.tsx).
 
-export function listFiles(projectId: string): Promise<FileEntry[]> {
-  return apiFetch<FileEntry[]>(
-    `/projects/${encodeURIComponent(projectId)}/files`,
-  );
+/** null when the project doesn't exist, isn't yours, or the id is malformed (like getProject). */
+export async function listFiles(
+  projectId: string,
+): Promise<FileEntry[] | null> {
+  try {
+    return await apiFetch<FileEntry[]>(
+      `/projects/${encodeURIComponent(projectId)}/files`,
+    );
+  } catch (error) {
+    if (
+      error instanceof ApiError &&
+      (error.status === 404 || error.status === 400)
+    )
+      return null;
+    throw error;
+  }
 }
 
 /** null when the file doesn't exist in this project. */

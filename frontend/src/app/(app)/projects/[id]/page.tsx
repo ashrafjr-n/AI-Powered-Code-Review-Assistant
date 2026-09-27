@@ -58,10 +58,10 @@ export default async function WorkspacePage({
 }: PageProps<"/projects/[id]">) {
   const { id } = await params;
   const query = await searchParams;
-  const project = await getProject(id);
-  if (!project) notFound();
+  // Together, not one after the other: one backend round trip less on every click.
+  const [project, files] = await Promise.all([getProject(id), listFiles(id)]);
+  if (!project || !files) notFound();
 
-  const files = await listFiles(id);
   if (files.length === 0) {
     return (
       <div className="mx-auto max-w-3xl space-y-4">
