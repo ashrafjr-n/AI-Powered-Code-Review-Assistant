@@ -4,15 +4,17 @@ This document explains how I used AI to build Redline, and what my own job was.
 
 ## Summary
 
-**The AI wrote almost all of the code. I led the work.** I planned the project, set the rules, made the decisions, reviewed every change, tested it, and fixed the direction when the AI was wrong. I treated the AI like a fast developer on my team: it types the code, but I decide what gets built, how, and when it is good enough.
+**The AI wrote almost all of the code. I led the work.** I planned the project, set the rules and made the decisions. I reviewed the changes, tested them, and corrected the direction when the AI was wrong. I treated the AI like a fast developer on my team: it types the code, but I decide what gets built, how, and when it is good enough.
 
-Every part of the code is something I can explain, and every decision has a reason I can defend.
+I made sure I could explain the important parts of the code and the reasoning behind the main technical decisions.
 
 ## AI tools used
 
 | Tool | What I used it for |
 |---|---|
-| **Claude Code** (Anthropic, Claude Opus models) | The main tool: planning, writing code, tests and docs, running commands, code reviews and audits |
+| **Claude Code with Claude Opus** (Anthropic) | The builder: planning, writing code, tests and docs, running commands, audits |
+| **Claude Sonnet** (Anthropic) | The second reviewer: checked finished files and parts against my principles files and criticized them |
+| **ChatGPT** (OpenAI) | Web research to compare options before a decision |
 | **Google Gemini 3.5 Flash-Lite** | Not a coding tool: the free demo model *inside* Redline, also used for real review tests |
 | **Ollama** (`qwen2.5-coder` 3B and 7B) and **OpenRouter** free models | Testing Redline with local and cloud providers |
 
@@ -28,9 +30,14 @@ I did not ask the AI to "build the app". I built a process around it:
    - **Engineering principles:** Server Components by default, no logic inside JSX, strong types (never `any`), shared primitives instead of copy-paste.
    - **Design rules:** I chose the direction (black, white and silver, with red used only where a human must look; Sourcegraph as a reference for principles, not looks). The AI turned it into a design checklist that every page had to pass.
 3. **Small parts, checked one by one.** The frontend was built page by page, and each page part by part. After each part the AI stopped, and I checked it in the browser before we continued.
-4. **Discuss, then decide.** For every important choice I asked for the options and the trade-offs, sometimes with research on the web, and then I picked one. We kept a decisions log (more than 160 entries), each with the reason and the options we rejected.
-5. **Learn every step.** After each step the AI wrote a simple explanation of what was built, how, and why, plus interview questions and answers. I used these notes to understand the code, not only to accept it.
-6. **Audit at the end.** I asked for full reviews against the brief, a logic-bug hunt, and a security and performance audit. Fixes went in small commits, one problem at a time, sometimes on a separate branch that I reviewed and merged myself.
+4. **A second AI as a reviewer.** When Opus finished a file or a part, I gave it to **Claude Sonnet** for review and criticism. Sonnet had principles files: Next.js principles for the frontend, NestJS principles for the backend, and so on. When Sonnet found a problem, I passed it back to Opus, and Opus fixed what needed fixing. One model builds, another one checks.
+5. **Research, discuss, then decide.** For important choices I asked for the options and the trade-offs, and I used **ChatGPT** to research on the web before deciding. Two examples:
+   - **Prisma 7.10 (stable), not Prisma 8:** version 8 was only a release candidate, so we chose the stable version.
+   - **Hosting on Vercel + Render + Neon:** NestJS needs a long-running Node server, so the backend went to Render, the Next.js app to Vercel, and PostgreSQL to Neon.
+
+   We kept a decisions log with the reason for each decision and the options we rejected. The main ones are listed [below](#engineering-decisions) and in the trade-offs section of [ARCHITECTURE.md](ARCHITECTURE.md).
+6. **Understand each step.** After each step the AI wrote a simple explanation of what was built, how, and why. I used these notes to understand the code, not only to accept it.
+7. **Audit at the end.** I asked for full reviews against the brief, a logic-bug hunt, and a security and performance audit. Fixes went in small commits, one problem at a time, sometimes on a separate branch that I reviewed and merged myself.
 
 ## Prompts used
 
@@ -42,7 +49,7 @@ Real prompts from the project. Many were written in Arabic; these are English tr
 > Continue. *(Open the plan and do the next unchecked step.)*
 
 **Asking for a review, not code**
-> Check the whole system, but don't change anything. Just inspect it, take notes and make a plan. Hunt for any logic mistakes in the project. Your main reference is the assessment brief.
+> Check the whole system, but don't change anything. Just inspect it, take notes and make a plan. Hunt for any logic mistakes in the project. Your main reference is the assessment brief. Be ready to discuss with me and justify every decision you make.
 
 **Fixing with care**
 > Fix all the problems in order, slowly, don't rush. Test after you finish and make sure everything works. Do all the fixes on a new branch with a short, professional name. When you finish, I will merge it manually. Just tell me how.
@@ -65,8 +72,8 @@ Real prompts from the project. Many were written in Arabic; these are English tr
 
 | Area | Written by | My part |
 |---|---|---|
-| Backend (NestJS modules, Prisma schema, migrations) | AI | Chose the stack and the module plan, reviewed the schema, approved every migration |
-| Frontend (pages, components, styles) | AI | Set the design direction and the rules, checked every part in the browser, asked for changes |
+| Backend (NestJS modules, Prisma schema, migrations) | AI | Chose the stack and the module plan, reviewed the schema and the migrations |
+| Frontend (pages, components, styles) | AI | Set the design direction and the rules, checked each part in the browser, asked for changes |
 | AI integration (prompts, output parsing, retrieval) | AI | Decided how model output is trusted (it isn't: validate it first), the review budget, and the retrieval approach |
 | Tests (unit, e2e, browser scripts) | AI | Asked for tests with every feature and fix, ran them, read the failures |
 | Docs (README, ARCHITECTURE, AUDIT, this file) | AI, from my notes and decisions | Decided the content and structure, edited the text |
@@ -78,7 +85,7 @@ Real prompts from the project. Many were written in Arabic; these are English tr
 
 - **Automated tests:** 69 backend unit tests, 25 end-to-end API tests (with a fake model server, so no real AI calls), and 20 frontend unit tests. Strict TypeScript and lint are clean in both apps.
 - **Browser checks:** interactive flows were tested with headless browser scripts, plus my own manual checks.
-- **Live tests:** on the deployed site I tested sign-up, upload, a real review, chat, and access to another user's data (every endpoint answered 404).
+- **Live tests:** on the deployed site we tested sign-up, upload, a real review, chat, and access to another user's data (every endpoint answered 404).
 - **Audits:** a check against the brief, a logic-bug hunt, and a security and performance audit. The results are in [AUDIT.md](AUDIT.md).
 - **Measuring instead of guessing:** for example, the largest allowed upload was measured at 0.7 s and +88 MB of memory.
 
@@ -125,4 +132,4 @@ The most important decisions, and what we did not choose:
 
 ## What I learned
 
-AI makes writing code much faster, so the real work moves to **deciding, reviewing and testing**. The best results came from clear rules, small steps, asking for options before code, and never accepting a change I had not checked.
+AI makes writing code much faster, so the real work moves to **deciding, reviewing and testing**. The best results came from clear rules, small steps, asking for options before code, and checking changes before accepting them.
