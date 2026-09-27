@@ -138,6 +138,6 @@ AI makes writing code much faster, so the real work moves to **deciding, reviewi
 
 ## Time spent
 
-The assessment was completed in about **12 hours of focused work** over **1.5 days**, instead of the **3 days** that were given: around 8 hours on the first day and around 4 hours on the second.
+The assessment was completed in about **12 hours of focused work** over **2 days**, instead of the **3 days** that were given: around 8 hours on the first day and around 4 hours on the second.
 
 **AI is the main reason it was this fast.** It did most of the typing, so my time went into planning, decisions, reviews and testing, instead of writing every line by hand.
