@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import { FileArchive, FolderUp, UploadCloud } from "lucide-react";
 import { buttonClass } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
+import { uploadProgress } from "@/content/upload";
 import { errorMessage } from "@/lib/api/error-message";
 import { cn } from "@/lib/cn";
 import { droppedEntries, readEntries } from "@/lib/dropped-files";
@@ -17,6 +18,7 @@ import {
   zipProblem,
   type SlimResult,
 } from "@/lib/upload";
+import { useElapsed } from "@/lib/use-elapsed";
 
 // The folder picker attribute works in all modern browsers but isn't in React's types,
 // so it's passed through a spread.
@@ -28,6 +30,22 @@ interface UploadDropzoneProps {
   onUploaded?: () => void;
 }
 
+/** Where a running upload is, so the drop zone can say it (a long wait never looks frozen). */
+type UploadStep =
+  | { kind: "preparing" }
+  | { kind: "uploading"; files: number; bytes: number }
+  | { kind: "opening" };
+
+// Preparing takes about a second, so a longer wait while uploading means the server is
+// slow to answer, usually because the free host is waking up.
+const SLOW_UPLOAD_SECONDS = 10;
+
+function stepLabel(step: UploadStep): string {
+  if (step.kind === "uploading")
+    return uploadProgress.uploading(step.files, formatBytes(step.bytes));
+  return uploadProgress[step.kind];
+}
+
 function isZip(file: File): boolean {
   return file.name.toLowerCase().endsWith(".zip");
 }
@@ -35,46 +53,61 @@ function isZip(file: File): boolean {
 export function UploadDropzone({ projectId, onUploaded }: UploadDropzoneProps) {
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string>();
-  const [pending, startTransition] = useTransition();
+  // null = idle. Not a transition: `router.refresh()` isn't tracked by one, so the drop
+  // zone would look idle for a moment before the workspace appears.
+  const [step, setStep] = useState<UploadStep | null>(null);
+  const busy = step !== null;
+  const seconds = useElapsed(busy);
+  const slowUpload =
+    step?.kind === "uploading" && seconds >= SLOW_UPLOAD_SECONDS;
   const router = useRouter();
 
   // 1. Slim the code here (drop node_modules, build output, binaries; empty secret files).
   // 2. Send one small ZIP straight to the backend (next.config rewrites /api), not through
   //    a Server Action: those accept 1 MB bodies. The backend checks everything again.
-  function send(prepare: () => Promise<SlimResult>) {
+  async function send(prepare: () => Promise<SlimResult>) {
+    function fail(message: string) {
+      setError(message);
+      setStep(null);
+    }
     setError(undefined);
-    startTransition(async () => {
-      const slim = await prepare();
-      if (!slim.ok) {
-        setError(slim.error);
-        return;
-      }
-      const body = new FormData();
-      body.set(
-        "file",
-        new Blob([slim.zip], { type: "application/zip" }),
-        "code.zip",
-      );
-      // What the browser already left out, for the "N skipped" note in the workspace.
-      body.set("skipped", JSON.stringify(slim.skipped));
-      const response = await fetch(
-        `/api/projects/${encodeURIComponent(projectId)}/files`,
-        { method: "POST", body },
-      ).catch(() => null);
-      if (response?.status === 401) {
-        router.push("/login?expired=1");
-      } else if (!response?.ok) {
-        setError(
-          response
-            ? await errorMessage(response)
-            : "Upload failed. Check your connection and try again.",
-        );
-      } else {
-        // Re-render the Server Component page, which now finds the files.
-        router.refresh();
-        onUploaded?.();
-      }
+    setStep({ kind: "preparing" });
+    const slim = await prepare().catch(() => null);
+    if (!slim) return fail("Your files could not be read. Try again.");
+    if (!slim.ok) return fail(slim.error);
+    const body = new FormData();
+    body.set(
+      "file",
+      new Blob([slim.zip], { type: "application/zip" }),
+      "code.zip",
+    );
+    // What the browser already left out, for the "N skipped" note in the workspace.
+    body.set("skipped", JSON.stringify(slim.skipped));
+    setStep({
+      kind: "uploading",
+      files: slim.fileCount,
+      bytes: slim.zip.length,
     });
+    const response = await fetch(
+      `/api/projects/${encodeURIComponent(projectId)}/files`,
+      { method: "POST", body },
+    ).catch(() => null);
+    // Stays busy while the browser goes to the login page.
+    if (response?.status === 401) return router.push("/login?expired=1");
+    if (!response?.ok)
+      return fail(
+        response
+          ? await errorMessage(response)
+          : "Upload failed. Check your connection and try again.",
+      );
+    // Re-render the Server Component page, which now finds the files. The first-upload
+    // drop zone stays busy until the workspace replaces it; the Replace dialog closes.
+    setStep({ kind: "opening" });
+    router.refresh();
+    if (onUploaded) {
+      onUploaded();
+      setStep(null);
+    }
   }
 
   function sendZip(file: File) {
@@ -130,17 +163,17 @@ export function UploadDropzone({ projectId, onUploaded }: UploadDropzoneProps) {
         }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
-        aria-busy={pending}
+        aria-busy={busy}
         className={cn(
           "flex flex-col items-center rounded-md border border-dashed px-6 pt-16 pb-10 text-center transition-colors focus-within:border-silver-300",
           dragging
             ? "border-silver-200 bg-ink-850"
             : "border-line-strong hover:border-silver-500 hover:bg-ink-900",
-          pending && "pointer-events-none",
+          busy && "pointer-events-none",
         )}
       >
         <label className="flex cursor-pointer flex-col items-center">
-          {pending ? (
+          {busy ? (
             <FileArchive
               aria-hidden
               className="size-7 animate-pulse text-silver-300"
@@ -153,20 +186,44 @@ export function UploadDropzone({ projectId, onUploaded }: UploadDropzoneProps) {
               strokeWidth={1.5}
             />
           )}
-          <span className="mt-5 font-medium text-paper">
-            {pending
-              ? "Reading your code…"
-              : "Drop a project folder, files or a .zip"}
-          </span>
-          <span className="mt-2 max-w-sm text-sm leading-relaxed text-silver-400">
-            or click to choose files or a ZIP (up to{" "}
-            {formatBytes(MAX_PICKED_ZIP_BYTES)}).
+          {/* Screen readers hear each step and the slow-server note, not the ticking timer. */}
+          <span
+            aria-live="polite"
+            className="mt-5 flex max-w-sm flex-col items-center"
+          >
+            <span className="font-medium text-paper">
+              {step
+                ? stepLabel(step)
+                : "Drop a project folder, files or a .zip"}
+            </span>
+            {busy ? (
+              <>
+                {seconds > 0 && (
+                  <span
+                    aria-hidden
+                    className="mt-2 font-mono text-xs text-silver-500 tabular-nums"
+                  >
+                    {seconds}s
+                  </span>
+                )}
+                {slowUpload && (
+                  <span className="mt-2 text-sm leading-relaxed text-silver-400">
+                    {uploadProgress.slowServer}
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="mt-2 text-sm leading-relaxed text-silver-400">
+                or click to choose files or a ZIP (up to{" "}
+                {formatBytes(MAX_PICKED_ZIP_BYTES)}).
+              </span>
+            )}
           </span>
           <input
             type="file"
             multiple
             className="sr-only"
-            disabled={pending}
+            disabled={busy}
             onChange={onPick}
           />
         </label>
@@ -179,7 +236,7 @@ export function UploadDropzone({ projectId, onUploaded }: UploadDropzoneProps) {
             type="file"
             {...folderPicker}
             className="sr-only"
-            disabled={pending}
+            disabled={busy}
             onChange={onPick}
           />
         </label>
