@@ -19,6 +19,17 @@ export const uploadRules = [
   },
 ];
 
+// The drop zone while an upload runs: one line per step, so a long wait never looks frozen.
+export const uploadProgress = {
+  preparing: "Preparing your files…",
+  uploading: (files: number, size: string) =>
+    `Uploading ${files.toLocaleString("en-US")} ${files === 1 ? "file" : "files"} (${size})…`,
+  opening: "Opening the workspace…",
+  // Shown only when the upload step is slow (see SLOW_UPLOAD_SECONDS).
+  slowServer:
+    "The server is waking up. Free hosting sleeps when nobody uses it, so the first request can take up to a minute.",
+};
+
 // "Replace code" in the workspace: new code replaces every stored file.
 export const replaceCodeCopy = {
   button: "Replace",
