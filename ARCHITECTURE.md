@@ -108,8 +108,8 @@ flowchart TD
 | `projects` | `GET/POST /projects`, `GET/DELETE /projects/:id` | `findOwned()` is **the** ownership check that every `/projects/:id/...` route uses. Another user's project answers 404 |
 | `files` | `POST/GET /projects/:id/files`, `GET /projects/:id/files/content?path=` | Unzips in memory (fflate), filters, redacts secrets. A new upload replaces all files in one transaction |
 | `providers` | `/providers` (CRUD, set main, test), `/providers/options`, `/providers/demo` | AES-256-GCM API keys, SSRF guard, demo model. `useProvider()` wraps every AI call |
-| `reviews` | `POST /projects/:id/reviews`, `GET /projects/:id/reviews/plan`, `GET /reviews`, `GET /reviews/:id` | Prompt building, context budget, output validation, history search, diff reviews (jsdiff) |
-| `chat` | `GET /projects/:id/chats`, `POST /projects/:id/chats/messages` | Keyword retrieval, top 3 files as sources, last 6 messages as history |
+| `reviews` | `POST /projects/:id/reviews`, `GET /projects/:id/reviews/plan`, `GET /reviews` (paged: `page`, `pageSize`), `GET /reviews/:id` | Prompt building, context budget, output validation, history search in the database, diff reviews (jsdiff) |
+| `chat` | `GET /projects/:id/chats` (titles), `GET /projects/:id/chats/:sessionId` (messages), `POST /projects/:id/chats/messages` | Keyword retrieval, top 3 files as sources, last 6 messages as history |
 | `insights` | `GET/POST /projects/:id/insights` | Architecture overview, README, setup guide, API docs. One saved document per kind |
 | `health` | `GET /health` | Health check for the host |
 
@@ -319,13 +319,14 @@ flowchart LR
 - **Secrets inside code** (OpenAI/Stripe/Google/GitHub/AWS/Slack keys, JWTs, private keys, `password = "…"`) are replaced with `‹redacted›` on the same line before saving. This is pattern based, so it catches common formats, not every possible secret.
 - **Ownership.** Every query is scoped to the user. Other users' ids answer 404, which reveals nothing. Server Actions confirm ownership through the backend before acting.
 - **SSRF guard.** Provider URLs are resolved through DNS and blocked if they point to private, loopback or link-local ranges (`net.BlockList`). Redirects are refused, and there's a 10 s timeout for tests. `ALLOW_LOCAL_PROVIDERS=true` exists for local development only.
-- **Uploads.** The ZIP is unzipped in memory with size, count and zip-bomb limits. Paths containing `..` are rejected (zip slip).
+- **Uploads.** The ZIP is unzipped in memory with size, count and zip-bomb limits; the file count is checked before anything is inflated. Paths containing `..` are rejected (zip slip). 10 uploads per minute per user.
 - **Auth.** scrypt password hashes, JWT in an `httpOnly` + `SameSite=Lax` cookie (+ `Secure` in production), and open-redirect protection on `?next=`. Login is protected in layers:
   - 10 login/register tries per minute per IP.
   - 5 failed logins for one account from one IP → wait 15 minutes.
   - 20 failed logins for one account from all IPs in an hour → wait. The lock is short, so an attacker can't lock the owner out for long.
   - An unknown email is checked against a dummy hash, so the response time doesn't reveal which emails have accounts. Unknown emails are counted too.
 - **Untrusted model output.** Reviews are validated with Zod, and paths and lines are checked against real files. Documents are rendered without raw HTML.
+- **Security headers.** The web app sends a Content-Security-Policy (only its own origin; `frame-ancestors 'none'`), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` and a referrer policy (`next.config.ts`). Neither app sends `X-Powered-By`. The CSP allows inline scripts because Next.js inlines its page data; per-request nonces would be the stricter next step.
 - **Behind a proxy.** `trust proxy` is set to one hop, and `X-Client-IP` is only trusted with the shared secret, so a faked header can't get around the limits.
 
 ## 9. Limits
@@ -338,7 +339,7 @@ flowchart LR
 | Chat context | top 3 files (8,000 characters each), 300 paths, last 6 messages |
 | Insight context | 40,000 characters, 500 paths |
 | AI call time | 270 s, including the retry (below the 300 s frontend limit) |
-| Rate limits (per minute, per user; per IP when signed out) | 100 in general · 10 login/register · 10 reviews · 20 chat messages · 10 insights · 10 connection tests |
+| Rate limits (per minute, per user; per IP when signed out) | 100 in general · 10 login/register · 10 uploads · 10 reviews · 20 chat messages · 10 insights · 10 connection tests |
 | Failed logins per account | 5 per IP in 15 min · 20 from all IPs in 1 hour |
 | Demo model | 10 requests per user per day · 200 per site per day |
 
@@ -348,7 +349,7 @@ flowchart LR
 |---|---|---|
 | Synchronous AI requests (no queue) | Simple; fits the 270 s budget | Background jobs + polling if reviews get slower |
 | Keyword retrieval for chat | Explainable, no extra infrastructure | Embeddings (pgvector) if answers miss relevant files |
-| Review history text search in memory | Few reviews per user | Postgres full-text search if history grows |
+| History search = `ILIKE` on a saved `searchText` column, 20 per page | Simple, in the database, no extension | A `pg_trgm` index or full-text search for very large histories |
 | Whole files within a character budget | Works with small local models | Chunking and merging for very large projects |
 | No streaming | Answers take a few seconds | Server-sent events if answers feel slow |
 | Rate-limit and login counters in memory | One API instance on Render | Redis or a table when running several instances |
