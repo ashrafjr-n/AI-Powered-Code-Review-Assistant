@@ -37,6 +37,20 @@ describe('extractZip', () => {
     expect(extractZip(zip).files.map((file) => file.path)).toEqual(['ok.ts']);
   });
 
+  it('keeps one file when two entries clean to the same path', () => {
+    const zip = zipSync({
+      'src/a.ts': strToU8('first'),
+      'src//a.ts': strToU8('copy'),
+      'README.md': strToU8('# App'),
+    });
+    const { files, skipped } = extractZip(zip);
+    expect(files.map((file) => [file.path, file.content])).toEqual([
+      ['README.md', '# App'],
+      ['src/a.ts', 'first'],
+    ]);
+    expect(skipped.ignored).toBe(1);
+  });
+
   it('throws a friendly error for broken or empty archives', () => {
     expect(() => extractZip(strToU8('not a zip'))).toThrow(InvalidZipError);
     expect(() => extractZip(zipSync({ 'a.png': new Uint8Array([0]) }))).toThrow(
