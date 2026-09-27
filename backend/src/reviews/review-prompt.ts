@@ -57,20 +57,27 @@ export function rankForReview(files: SourceFile[]): SourceFile[] {
 
 /**
  * Keeps whole files, in order, until the budget is full. If even the first file is too
- * big, it is cut. Returns what is sent and how many files were left out.
+ * big, it is cut. `size` = how many characters a file takes in the prompt.
+ * Returns what is sent and how many files were left out.
  */
 export function pickFiles(
   files: SourceFile[],
   budget = MAX_REVIEW_CHARS,
+  size: (file: SourceFile) => number = (file) => file.content.length,
 ): { included: SourceFile[]; skipped: number } {
   const included: SourceFile[] = [];
   let used = 0;
   for (const file of files) {
-    if (used + file.content.length <= budget) {
+    const cost = size(file);
+    if (used + cost <= budget) {
       included.push(file);
-      used += file.content.length;
+      used += cost;
     } else if (included.length === 0) {
-      included.push({ ...file, content: file.content.slice(0, budget) });
+      // Even the first file is too big: cut it until it fits.
+      let content = file.content.slice(0, budget);
+      while (content && size({ ...file, content }) > budget)
+        content = content.slice(0, Math.floor(content.length * 0.9));
+      included.push({ ...file, content });
       used = budget;
     }
   }
@@ -83,6 +90,22 @@ function numbered(content: string): string {
     .split('\n')
     .map((line, index) => `${String(index + 1).padStart(4)}| ${line}`)
     .join('\n');
+}
+
+/** A file as the model sees it in a review: a header, then numbered lines. */
+function fileBlock(file: SourceFile): string {
+  return `=== FILE: ${file.path} ===\n${numbered(file.content)}`;
+}
+
+/**
+ * pickFiles() for reviews: counts the header and line numbers too, because that is
+ * what is really sent (about 6 more characters per line).
+ */
+export function pickReviewFiles(
+  files: SourceFile[],
+  budget = MAX_REVIEW_CHARS,
+): { included: SourceFile[]; skipped: number } {
+  return pickFiles(files, budget, (file) => fileBlock(file).length);
 }
 
 type PromptMessage = { role: 'system' | 'user'; content: string };
@@ -111,10 +134,7 @@ export function buildReviewMessages(
   const hidden = hiddenPaths.length
     ? `\n\n=== NOT SENT (privacy) ===\nThese files exist in the project but usually hold secrets (env files, keys, credentials), so their content is never shared: ${hiddenPaths.join(', ')}. Committing such files is a security risk: report it when relevant, pointing at the path without a line.`
     : '';
-  const user =
-    files
-      .map((file) => `=== FILE: ${file.path} ===\n${numbered(file.content)}`)
-      .join('\n\n') + hidden;
+  const user = files.map(fileBlock).join('\n\n') + hidden;
   return [
     { role: 'system', content: reviewSystem(mode) },
     { role: 'user', content: user },
