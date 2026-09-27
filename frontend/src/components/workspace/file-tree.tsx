@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronRight, FileCode2, Folder, LockKeyhole } from "lucide-react";
 import { HoverNote } from "@/components/ui/cursor-tip";
+import { LinkPending } from "@/components/ui/link-pending";
 import { privacyText } from "@/content/privacy";
 import type { TreeFile, TreeNode } from "@/lib/file-tree";
 import { cn } from "@/lib/cn";
@@ -109,12 +110,16 @@ function FileRow({ node, indent, selected, href, selectForm }: FileRowProps) {
       <Link
         href={href}
         aria-current={selected ? "page" : undefined}
-        className="min-w-0 flex-1 truncate focus-visible:outline-offset-0"
+        className="flex min-w-0 flex-1 items-center gap-1.5 focus-visible:outline-offset-0"
       >
-        {node.name}
-        {node.sensitive && (
-          <span className="sr-only"> (hidden for privacy)</span>
-        )}
+        <span className="truncate">
+          {node.name}
+          {node.sensitive && (
+            <span className="sr-only"> (hidden for privacy)</span>
+          )}
+        </span>
+        {/* Opening a file renders the page on the server: show the click was heard. */}
+        <LinkPending className="size-1.5 shrink-0 rounded-full" />
       </Link>
     </>
   );
