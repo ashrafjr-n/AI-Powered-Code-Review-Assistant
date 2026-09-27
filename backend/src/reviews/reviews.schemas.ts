@@ -15,6 +15,12 @@ export const listReviewsQuerySchema = z.object({
   // The review's worst issue (Review.highestSeverity), like the badge in lists.
   severity: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional(),
   projectId: z.uuid().optional(),
+  // Only reviews that read this whole file (diff reviews excluded): the workspace's
+  // issue dots. With codeVersion: only reviews of that upload.
+  file: z.string().min(1).max(1000).optional(),
+  codeVersion: z.coerce.number().int().min(0).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(20),
 });
 
 export type RunReviewDto = z.infer<typeof runReviewSchema>;

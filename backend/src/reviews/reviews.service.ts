@@ -68,6 +68,12 @@ interface ReviewJob {
   codeVersion: number;
 }
 
+/** One page of history, newest first. `total` = all matches, for the pager. */
+export interface ReviewPage {
+  items: ReviewView[];
+  total: number;
+}
+
 export type ReviewView = Omit<
   ReviewRow,
   'issues' | 'recommendations' | 'project'
@@ -76,6 +82,17 @@ export type ReviewView = Omit<
   recommendations: string[];
   projectName: string;
 };
+
+/** What history search looks in (lowercase). The project name is searched by join. */
+export function searchTextOf(
+  summary: string,
+  filePaths: string[],
+  issues: ReviewIssue[],
+): string {
+  return [summary, ...filePaths, ...issues.map((issue) => issue.title)]
+    .join(' ')
+    .toLowerCase();
+}
 
 function toView({
   project,
@@ -135,7 +152,10 @@ export class ReviewsService {
           : 'None of these files are in the project.',
       );
     const budget = await this.providers.reviewBudget(userId);
-    const { included, skipped } = pickReviewFiles(rankForReview(readable), budget);
+    const { included, skipped } = pickReviewFiles(
+      rankForReview(readable),
+      budget,
+    );
     return { readable, hiddenPaths, included, skipped, codeVersion };
   }
 
@@ -188,6 +208,7 @@ export class ReviewsService {
         issues: output.issues as unknown as Prisma.InputJsonValue,
         recommendations: output.recommendations,
         highestSeverity: highestSeverity(output.issues),
+        searchText: searchTextOf(summary, job.filePaths, output.issues),
         providerName: provider.name,
         model: provider.model,
       },
@@ -285,31 +306,42 @@ export class ReviewsService {
     };
   }
 
-  // Search runs over summary, project name, file paths and issue titles.
-  // ponytail: text search in memory over the user's reviews; move to Postgres
-  // full-text search (tsvector) if one user ever has thousands of reviews.
-  async list(userId: string, query: ListReviewsQuery): Promise<ReviewView[]> {
-    const rows = await this.prisma.review.findMany({
-      where: {
-        project: { userId },
-        ...(query.mode && { mode: query.mode }),
-        ...(query.severity && { highestSeverity: query.severity }),
-        ...(query.projectId && { projectId: query.projectId }),
-      },
-      orderBy: { createdAt: 'desc' },
-      select: reviewSelect,
-    });
-    const reviews = rows.map(toView);
+  // Search runs in the database over summary, file paths and issue titles
+  // (`searchText`) and the project name.
+  // ponytail: `contains` = ILIKE scan of the user's reviews; add a pg_trgm index or
+  // full-text search (tsvector) if one user ever has tens of thousands.
+  async list(userId: string, query: ListReviewsQuery): Promise<ReviewPage> {
     const q = query.q?.toLowerCase();
-    if (!q) return reviews;
-    return reviews.filter((review) =>
-      [
-        review.summary,
-        review.projectName,
-        ...review.filePaths,
-        ...review.issues.map((issue) => issue.title),
-      ].some((text) => text.toLowerCase().includes(q)),
-    );
+    const where: Prisma.ReviewWhereInput = {
+      project: { userId },
+      ...(query.mode && { mode: query.mode }),
+      ...(query.severity && { highestSeverity: query.severity }),
+      ...(query.projectId && { projectId: query.projectId }),
+      ...(query.file && {
+        scope: { not: 'DIFF' },
+        filePaths: { has: query.file },
+      }),
+      ...(query.codeVersion !== undefined && {
+        codeVersion: query.codeVersion,
+      }),
+      ...(q && {
+        OR: [
+          { searchText: { contains: q } },
+          { project: { name: { contains: q, mode: 'insensitive' } } },
+        ],
+      }),
+    };
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.review.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+        select: reviewSelect,
+      }),
+      this.prisma.review.count({ where }),
+    ]);
+    return { items: rows.map(toView), total };
   }
 
   async get(userId: string, id: string): Promise<ReviewView> {

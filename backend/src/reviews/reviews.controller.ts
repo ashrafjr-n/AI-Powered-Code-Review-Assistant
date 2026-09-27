@@ -15,7 +15,11 @@ import {
   type ListReviewsQuery,
   type RunReviewDto,
 } from './reviews.schemas.js';
-import { ReviewsService, type ReviewView } from './reviews.service.js';
+import {
+  ReviewsService,
+  type ReviewPage,
+  type ReviewView,
+} from './reviews.service.js';
 
 @Controller()
 export class ReviewsController {
@@ -45,7 +49,7 @@ export class ReviewsController {
   list(
     @CurrentUserId() userId: string,
     @Query({ schema: listReviewsQuerySchema }) query: ListReviewsQuery,
-  ): Promise<ReviewView[]> {
+  ): Promise<ReviewPage> {
     return this.reviews.list(userId, query);
   }
 
