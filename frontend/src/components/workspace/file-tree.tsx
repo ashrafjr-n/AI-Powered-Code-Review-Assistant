@@ -1,28 +1,40 @@
+"use client";
+
 import Link from "next/link";
 import { ChevronRight, FileCode2, Folder, LockKeyhole } from "lucide-react";
 import { HoverNote } from "@/components/ui/cursor-tip";
 import { LinkPending } from "@/components/ui/link-pending";
 import { privacyText } from "@/content/privacy";
-import type { TreeFile, TreeNode } from "@/lib/file-tree";
+import { buildFileTree, type TreeFile, type TreeNode } from "@/lib/file-tree";
 import { cn } from "@/lib/cn";
+import type { FileEntry } from "@/lib/types";
 import { workspaceHref, type WorkspaceTab } from "@/lib/workspace-url";
 
 interface FileTreeProps {
   projectId: string;
-  nodes: TreeNode[];
+  /** The flat file list; the tree is built here. */
+  files: FileEntry[];
   selectedPath?: string;
   tab: WorkspaceTab;
   /** Adds checkboxes that belong to the review form (via the form attribute). */
   selectForm?: string;
 }
 
+interface TreeLevelProps extends Omit<FileTreeProps, "files"> {
+  nodes: TreeNode[];
+  depth: number;
+}
+
+// A client component on purpose: every file or tab click renders the workspace again on
+// the server. As a Server Component the tree sent every row's HTML each time (~700 KB
+// for 565 files); now only the flat file list travels and the browser builds the rows.
 // Plain nested lists + native <details> for folders: accessible without custom
 // keyboard code (role="tree" would promise arrow-key navigation we don't build).
-export function FileTree(props: FileTreeProps) {
+export function FileTree({ files, ...props }: FileTreeProps) {
   return (
     <nav aria-label="Project files">
       <ul className="font-mono text-[13px]">
-        <TreeLevel {...props} depth={0} />
+        <TreeLevel {...props} nodes={buildFileTree(files)} depth={0} />
       </ul>
     </nav>
   );
@@ -35,7 +47,7 @@ function TreeLevel({
   tab,
   selectForm,
   depth,
-}: FileTreeProps & { depth: number }) {
+}: TreeLevelProps) {
   const indent = { paddingLeft: `${depth * 12 + 8}px` };
 
   return nodes.map((node) =>

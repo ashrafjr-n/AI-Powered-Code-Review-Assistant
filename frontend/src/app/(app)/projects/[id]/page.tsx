@@ -16,7 +16,6 @@ import { ReplaceCodeButton } from "@/components/workspace/replace-code-button";
 import { UploadDropzone } from "@/components/workspace/upload-dropzone";
 import { UploadRules } from "@/components/workspace/upload-rules";
 import { UploadSummary } from "@/components/workspace/upload-summary";
-import { buildFileTree } from "@/lib/file-tree";
 import { markersFor } from "@/lib/issue-markers";
 import { PANE_COOKIE, parsePaneCookie } from "@/lib/pane-layout";
 import {
@@ -116,7 +115,7 @@ export default async function WorkspacePage({
   const tree = (
     <FileTree
       projectId={id}
-      nodes={buildFileTree(files)}
+      files={files}
       selectedPath={selected.path}
       tab={tab}
       selectForm={tab === "review" ? REVIEW_FORM_ID : undefined}
