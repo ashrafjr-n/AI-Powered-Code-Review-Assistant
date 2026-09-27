@@ -135,6 +135,7 @@ export function extractZip(zip: Uint8Array): ExtractResult {
   let total = 0;
   const skipped: SkipCounts = { ignored: 0, binary: 0, tooLarge: 0 };
   const sensitive: ExtractedFile[] = [];
+  const seen = new Set<string>();
   let entries: Record<string, Uint8Array>;
   try {
     entries = unzipSync(zip, {
@@ -142,6 +143,13 @@ export function extractZip(zip: Uint8Array): ExtractResult {
       filter: (entry) => {
         const path = safePath(entry.name);
         if (!path || entry.name.endsWith('/')) return false;
+        // "a/b.ts" and "a//b.ts" clean to the same path, but a project has one row
+        // per path: keep the first, skip the copy.
+        if (seen.has(path)) {
+          skipped.ignored++;
+          return false;
+        }
+        seen.add(path);
         if (isIgnored(path)) {
           skipped.ignored++;
           return false;
