@@ -48,6 +48,7 @@ export function ChatPanel({
                   href={workspaceHref(projectId, {
                     tab: "chat",
                     chat: session.id,
+                    file: currentFile,
                   })}
                   aria-current={session.id === active?.id ? "page" : undefined}
                   className={cn(
@@ -64,7 +65,11 @@ export function ChatPanel({
           </ul>
         </details>
         <Link
-          href={workspaceHref(projectId, { tab: "chat", chat: "new" })}
+          href={workspaceHref(projectId, {
+            tab: "chat",
+            chat: "new",
+            file: currentFile,
+          })}
           className={buttonClass("secondary", "sm")}
           aria-label="New conversation"
         >
