@@ -128,7 +128,6 @@ The most important decisions, and what we did not choose:
 - **No monitoring** beyond the hosting platforms' logs.
 - **No load test:** only the worst-case upload was measured.
 - **Chat search is keyword-based,** so it works best in English.
-- **One small open bug:** after the first question in a new chat, the open file switches back to README.
 
 ## What I learned
 
