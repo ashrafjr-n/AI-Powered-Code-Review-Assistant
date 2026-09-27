@@ -85,6 +85,22 @@ describe('buildChatMessages', () => {
     expect(messages[0].content).toContain('b.ts');
     expect(messages[3].content).toBe('second?');
   });
+
+  it('cuts long old answers and long files', () => {
+    const messages = buildChatMessages({
+      projectName: 'Shop',
+      allPaths: ['a.ts'],
+      sources: [{ path: 'a.ts', content: 'x'.repeat(20_000) }],
+      history: [
+        { role: 'USER', content: 'first?' },
+        { role: 'ASSISTANT', content: 'y'.repeat(20_000) },
+      ],
+      question: 'second?',
+    });
+    expect(messages[0].content).toContain('[…file cut…]');
+    expect(messages[0].content.length).toBeLessThan(9_000);
+    expect(messages[2].content).toBe(`${'y'.repeat(2_000)}\n[…cut…]`);
+  });
 });
 
 describe('pickSources', () => {
