@@ -50,6 +50,8 @@ export function ProviderFormDialog({
   };
   const [values, setValues] = useState(initialValues);
   const [test, setTest] = useState<ConnectionResult | null>(null);
+  // Edit only: forget the stored key (e.g. the provider moved to a local server).
+  const [removeKey, setRemoveKey] = useState(false);
   // A local preset picked on a public server: ask for the tunnel's https address.
   const [needsTunnel, setNeedsTunnel] = useState(false);
   const [testing, startTest] = useTransition();
@@ -65,6 +67,7 @@ export function ProviderFormDialog({
         // A new "Add provider" dialog should start empty; an edit keeps the saved values.
         if (!editing) setValues(initialValues);
         setTest(null);
+        setRemoveKey(false);
       }
       return result;
     },
@@ -79,7 +82,8 @@ export function ProviderFormDialog({
     const formData = new FormData();
     formData.set("baseUrl", values.baseUrl);
     formData.set("apiKey", values.apiKey);
-    if (provider) formData.set("providerId", provider.id);
+    // The stored key is only used while it is kept.
+    if (provider && !removeKey) formData.set("providerId", provider.id);
     startTest(async () => setTest(await testConnectionAction(formData)));
   }
 
@@ -163,7 +167,7 @@ export function ProviderFormDialog({
           label="API key"
           hint={
             editing && provider?.hasApiKey
-              ? "A key is stored (encrypted). Leave empty to keep it. Enter it again if you change the base URL."
+              ? "A key is stored (encrypted). Leave empty to keep it. Enter it again if you change the base URL, or remove it."
               : "Stored encrypted. Leave empty for local servers like LM Studio or Ollama."
           }
         >
@@ -175,9 +179,26 @@ export function ProviderFormDialog({
             maxLength={500}
             value={values.apiKey}
             onChange={set("apiKey")}
+            disabled={removeKey}
             aria-describedby={`${ids.key}-hint`}
-            className="font-mono"
+            className="font-mono disabled:cursor-not-allowed disabled:opacity-50"
           />
+          {editing && provider?.hasApiKey && (
+            <label className="flex w-fit cursor-pointer items-center gap-2 text-xs text-silver-300">
+              <input
+                type="checkbox"
+                name="removeApiKey"
+                checked={removeKey}
+                onChange={(event) => {
+                  setRemoveKey(event.target.checked);
+                  setValues((current) => ({ ...current, apiKey: "" }));
+                  setTest(null);
+                }}
+                className="size-3.5 accent-silver-200"
+              />
+              Remove the stored key (for local servers without a key)
+            </label>
+          )}
         </Field>
         <Field id={ids.model} label="Model">
           <Input
