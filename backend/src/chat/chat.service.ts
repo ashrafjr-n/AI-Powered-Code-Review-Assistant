@@ -24,13 +24,24 @@ export interface ChatMessageView {
   createdAt: Date;
 }
 
-export interface ChatSessionView {
+/** A conversation in the list: no messages (they are loaded for the open one only). */
+export interface ChatSessionSummary {
   id: string;
   projectId: string;
   title: string;
   createdAt: Date;
+}
+
+export interface ChatSessionView extends ChatSessionSummary {
   messages: ChatMessageView[];
 }
+
+const sessionSelect = {
+  id: true,
+  projectId: true,
+  title: true,
+  createdAt: true,
+} as const;
 
 const messageSelect = {
   id: true,
@@ -52,24 +63,35 @@ export class ChatService {
     private readonly projects: ProjectsService,
   ) {}
 
-  // ponytail: returns every session with all messages; load only the open one if
-  // conversations get long.
+  /** Newest first, titles only. */
   async listSessions(
     userId: string,
     projectId: string,
-  ): Promise<ChatSessionView[]> {
+  ): Promise<ChatSessionSummary[]> {
     await this.projects.findOwned(userId, projectId);
     return this.prisma.chatSession.findMany({
       where: { projectId },
       orderBy: { createdAt: 'desc' },
+      select: sessionSelect,
+    });
+  }
+
+  /** One conversation with its messages (oldest first). */
+  async getSession(
+    userId: string,
+    projectId: string,
+    sessionId: string,
+  ): Promise<ChatSessionView> {
+    await this.projects.findOwned(userId, projectId);
+    const session = await this.prisma.chatSession.findFirst({
+      where: { id: sessionId, projectId },
       select: {
-        id: true,
-        projectId: true,
-        title: true,
-        createdAt: true,
+        ...sessionSelect,
         messages: { orderBy: { createdAt: 'asc' }, select: messageSelect },
       },
     });
+    if (!session) throw new NotFoundException('Conversation not found');
+    return session;
   }
 
   /** Answers a question. Nothing is saved unless the model answers. Returns the session id. */

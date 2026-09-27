@@ -9,7 +9,11 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUserId } from '../auth/current-user-id.decorator.js';
 import { askSchema, type AskDto } from './chat.schemas.js';
-import { ChatService, type ChatSessionView } from './chat.service.js';
+import {
+  ChatService,
+  type ChatSessionSummary,
+  type ChatSessionView,
+} from './chat.service.js';
 
 @Controller('projects/:id/chats')
 export class ChatController {
@@ -19,8 +23,17 @@ export class ChatController {
   list(
     @CurrentUserId() userId: string,
     @Param('id', new ParseUUIDPipe({ version: '7' })) id: string,
-  ): Promise<ChatSessionView[]> {
+  ): Promise<ChatSessionSummary[]> {
     return this.chat.listSessions(userId, id);
+  }
+
+  @Get(':sessionId')
+  get(
+    @CurrentUserId() userId: string,
+    @Param('id', new ParseUUIDPipe({ version: '7' })) id: string,
+    @Param('sessionId', new ParseUUIDPipe({ version: '7' })) sessionId: string,
+  ): Promise<ChatSessionView> {
+    return this.chat.getSession(userId, id, sessionId);
   }
 
   // Waits for the model's answer.
