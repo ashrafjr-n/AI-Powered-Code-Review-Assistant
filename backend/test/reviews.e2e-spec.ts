@@ -318,6 +318,22 @@ describe('Reviews (e2e)', () => {
     const unknown = await diff(['login.ts', 'nope.ts']).expect(400);
     expect(unknown.body.message).toContain('No file called "nope.ts"');
 
+    // Project cards ignore diff reviews: they only looked at one change.
+    const card = async () =>
+      (await owner.get(`/api/projects/${project.id}`).expect(200)).body;
+    expect((await card()).lastReview).toBeUndefined();
+    replies = [
+      JSON.stringify({ summary: 'Fine.', issues: [], recommendations: [] }),
+    ];
+    await owner
+      .post(run)
+      .send({ mode: 'QUALITY', scope: 'FILE', filePaths: ['src/login.ts'] })
+      .expect(201);
+    expect((await card()).lastReview).toMatchObject({
+      severity: null,
+      outdated: false,
+    });
+
     // A new upload bumps the version: older reviews are now for older code.
     await owner
       .post(`/api/projects/${project.id}/files`)
@@ -331,5 +347,6 @@ describe('Reviews (e2e)', () => {
       .get(`/api/projects/${project.id}`)
       .expect(200);
     expect(after.codeVersion).toBe(2);
+    expect(after.lastReview.outdated).toBe(true);
   });
 });

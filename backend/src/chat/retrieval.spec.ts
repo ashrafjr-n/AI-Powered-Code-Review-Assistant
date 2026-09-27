@@ -24,9 +24,27 @@ describe('keywords', () => {
       'handled',
     ]);
   });
+
+  it('keeps words of any language', () => {
+    expect(keywords('وين زر تسجيل الدخول؟')).toEqual([
+      'وين',
+      'تسجيل',
+      'الدخول',
+    ]);
+  });
 });
 
 describe('rankFiles', () => {
+  it('matches an Arabic question to Arabic text in the code', () => {
+    const arabic = [
+      ...files,
+      { path: 'src/ui/form.tsx', content: '<button>تسجيل الدخول</button>' },
+    ];
+    expect(rankFiles('وين زر تسجيل الدخول؟', arabic)).toEqual([
+      'src/ui/form.tsx',
+    ]);
+  });
+
   it('ranks files whose path matches first, then content hits', () => {
     expect(
       rankFiles('Which file handles the database connection?', files),
@@ -66,6 +84,22 @@ describe('buildChatMessages', () => {
     expect(messages[0].content).toContain('=== FILE: a.ts ===');
     expect(messages[0].content).toContain('b.ts');
     expect(messages[3].content).toBe('second?');
+  });
+
+  it('cuts long old answers and long files', () => {
+    const messages = buildChatMessages({
+      projectName: 'Shop',
+      allPaths: ['a.ts'],
+      sources: [{ path: 'a.ts', content: 'x'.repeat(20_000) }],
+      history: [
+        { role: 'USER', content: 'first?' },
+        { role: 'ASSISTANT', content: 'y'.repeat(20_000) },
+      ],
+      question: 'second?',
+    });
+    expect(messages[0].content).toContain('[…file cut…]');
+    expect(messages[0].content.length).toBeLessThan(9_000);
+    expect(messages[2].content).toBe(`${'y'.repeat(2_000)}\n[…cut…]`);
   });
 });
 

@@ -22,7 +22,7 @@ import { diffFiles, resolveTypedPath } from './review-diff.js';
 import {
   buildDiffReviewMessages,
   buildReviewMessages,
-  pickFiles,
+  pickReviewFiles,
   rankForReview,
   type SourceFile,
 } from './review-prompt.js';
@@ -135,7 +135,7 @@ export class ReviewsService {
           : 'None of these files are in the project.',
       );
     const budget = await this.providers.reviewBudget(userId);
-    const { included, skipped } = pickFiles(rankForReview(readable), budget);
+    const { included, skipped } = pickReviewFiles(rankForReview(readable), budget);
     return { readable, hiddenPaths, included, skipped, codeVersion };
   }
 

@@ -75,14 +75,16 @@ export interface ExtractResult {
 
 export class InvalidZipError extends Error {}
 
-/** "a\\b/../c" and "/etc/x" are rejected; returns a clean relative path or null. */
+/**
+ * "a\\b/../c" and "/etc/x" are rejected; "./src/a.ts" (some zip tools write this)
+ * becomes "src/a.ts". Returns a clean relative path or null.
+ */
 function safePath(name: string): string | null {
-  const parts = name.replaceAll('\\', '/').split('/').filter(Boolean);
-  if (
-    name.startsWith('/') ||
-    parts.some((part) => part === '..' || part === '.')
-  )
-    return null;
+  const parts = name
+    .replaceAll('\\', '/')
+    .split('/')
+    .filter((part) => part && part !== '.');
+  if (name.startsWith('/') || parts.includes('..')) return null;
   return parts.join('/');
 }
 
@@ -135,6 +137,7 @@ export function extractZip(zip: Uint8Array): ExtractResult {
   let total = 0;
   const skipped: SkipCounts = { ignored: 0, binary: 0, tooLarge: 0 };
   const sensitive: ExtractedFile[] = [];
+  const seen = new Set<string>();
   let entries: Record<string, Uint8Array>;
   try {
     entries = unzipSync(zip, {
@@ -142,6 +145,13 @@ export function extractZip(zip: Uint8Array): ExtractResult {
       filter: (entry) => {
         const path = safePath(entry.name);
         if (!path || entry.name.endsWith('/')) return false;
+        // "a/b.ts" and "a//b.ts" clean to the same path, but a project has one row
+        // per path: keep the first, skip the copy.
+        if (seen.has(path)) {
+          skipped.ignored++;
+          return false;
+        }
+        seen.add(path);
         if (isIgnored(path)) {
           skipped.ignored++;
           return false;

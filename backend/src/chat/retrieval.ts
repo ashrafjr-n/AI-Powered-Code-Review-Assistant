@@ -12,9 +12,12 @@ const STOP_WORDS = new Set(
   ).split(' '),
 );
 
-/** "Where are errors handled?" → ["error", "handled"]. */
+/**
+ * "Where are errors handled?" → ["error", "handled"]. Letters of any language count,
+ * so an Arabic question can still match Arabic UI text or comments in the code.
+ */
 export function keywords(question: string): string[] {
-  const words = question.toLowerCase().match(/[a-z0-9_]{3,}/g) ?? [];
+  const words = question.toLowerCase().match(/[\p{L}\p{N}_]{3,}/gu) ?? [];
   const cleaned = words
     .filter((word) => !STOP_WORDS.has(word))
     // Crude plural → singular, so "errors" also finds "error".

@@ -109,6 +109,17 @@ describe('Providers (e2e)', () => {
       .put(`/api/providers/${first.body.id}`)
       .send({ name: 'Fake 2', baseUrl: 'http://127.0.0.2:9/v1', model: 'x' })
       .expect(400);
+    // Removing the key allows a new URL (e.g. a local server without a key).
+    const keyless = await owner
+      .put(`/api/providers/${first.body.id}`)
+      .send({
+        name: 'Fake 2',
+        baseUrl: 'http://127.0.0.2:9/v1',
+        model: 'x',
+        removeApiKey: true,
+      })
+      .expect(200);
+    expect(keyless.body).toMatchObject({ hasApiKey: false });
 
     await owner
       .post('/api/providers')

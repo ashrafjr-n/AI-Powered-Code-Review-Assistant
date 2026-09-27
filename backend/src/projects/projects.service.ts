@@ -19,6 +19,8 @@ export interface ProjectSummary {
     createdAt: Date;
     /** Issues per severity, for the small blocks on project cards. */
     counts: Record<Severity, number>;
+    /** The code was uploaded again after this review: its counts may be out of date. */
+    outdated: boolean;
   };
 }
 
@@ -32,10 +34,17 @@ const summarySelect = {
   codeVersion: true,
   // Readable files only: sensitive ones are listed but never opened.
   _count: { select: { files: { where: { sensitive: false } } } },
+  // Diff reviews only look at one change, so they don't describe the project.
   reviews: {
+    where: { scope: { not: 'DIFF' } },
     orderBy: { createdAt: 'desc' },
     take: 1,
-    select: { highestSeverity: true, createdAt: true, issues: true },
+    select: {
+      highestSeverity: true,
+      createdAt: true,
+      issues: true,
+      codeVersion: true,
+    },
   },
 } satisfies Prisma.ProjectSelect;
 
@@ -69,6 +78,7 @@ function toSummary(row: SummaryRow): ProjectSummary {
           severity: latest.highestSeverity,
           createdAt: latest.createdAt,
           counts: countIssues(latest.issues),
+          outdated: latest.codeVersion !== row.codeVersion,
         }
       : undefined,
   };

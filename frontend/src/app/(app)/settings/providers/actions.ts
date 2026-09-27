@@ -32,6 +32,8 @@ function readForm(formData: FormData) {
       .replace(/\/+$/, ""),
     model: String(formData.get("model") ?? "").trim(),
     apiKey: String(formData.get("apiKey") ?? "").trim(),
+    // Checkbox: "on" when ticked, missing otherwise.
+    removeApiKey: formData.get("removeApiKey") === "on",
   };
 }
 
