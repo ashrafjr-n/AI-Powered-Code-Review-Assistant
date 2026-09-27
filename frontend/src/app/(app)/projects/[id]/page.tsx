@@ -134,7 +134,10 @@ export default async function WorkspacePage({
               <FolderTree aria-hidden className="size-4" strokeWidth={1.5} />
               Files ({project.fileCount})
             </summary>
-            <div className="max-h-72 overflow-auto border-t border-line p-2 lg:max-h-none lg:overflow-visible lg:border-t-0">
+            {/* `relative`: screen-reader-only labels (position: absolute) stay inside the
+                scrolling tree. Without it, a hidden file at the end of a long tree pushed
+                the whole page taller (empty space below the workspace). */}
+            <div className="relative max-h-72 overflow-auto border-t border-line p-2 lg:max-h-none lg:overflow-visible lg:border-t-0">
               <div className="mb-2 flex items-start justify-between gap-2 border-b border-line px-2 pb-2 font-mono text-[11px] text-silver-500">
                 <UploadSummary
                   fileCount={project.fileCount}
@@ -179,7 +182,8 @@ export default async function WorkspacePage({
           className="flex min-h-[480px] min-w-0 flex-col overflow-hidden rounded-md border border-line bg-ink-900 lg:min-h-0"
         >
           <PanelTabs projectId={id} active={tab} file={selected.path} />
-          <div className="min-h-0 flex-1 overflow-auto">
+          {/* `relative`: same reason as the tree (keeps sr-only labels in the scroll box). */}
+          <div className="relative min-h-0 flex-1 overflow-auto">
             {recent && (
               <ReviewPanel
                 projectId={id}
