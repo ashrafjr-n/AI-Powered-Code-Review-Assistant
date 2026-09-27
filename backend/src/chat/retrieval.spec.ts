@@ -24,9 +24,27 @@ describe('keywords', () => {
       'handled',
     ]);
   });
+
+  it('keeps words of any language', () => {
+    expect(keywords('وين زر تسجيل الدخول؟')).toEqual([
+      'وين',
+      'تسجيل',
+      'الدخول',
+    ]);
+  });
 });
 
 describe('rankFiles', () => {
+  it('matches an Arabic question to Arabic text in the code', () => {
+    const arabic = [
+      ...files,
+      { path: 'src/ui/form.tsx', content: '<button>تسجيل الدخول</button>' },
+    ];
+    expect(rankFiles('وين زر تسجيل الدخول؟', arabic)).toEqual([
+      'src/ui/form.tsx',
+    ]);
+  });
+
   it('ranks files whose path matches first, then content hits', () => {
     expect(
       rankFiles('Which file handles the database connection?', files),
