@@ -334,7 +334,7 @@ flowchart LR
 |---|---|
 | ZIP picked in the browser | 200 MB (slimmed before upload) |
 | ZIP received by the backend | 10 MB · 2,000 files · 512 KB per file · 50 MB unpacked |
-| Review context | 48,000 characters of whole files with an own provider (its context size is unknown); 160,000 with the large-context demo model (`DEMO_MAX_CHARS`) |
+| Review context | 48,000 characters of whole files (counted as sent: header + line numbers) with an own provider (its context size is unknown); 160,000 with the large-context demo model (`DEMO_MAX_CHARS`) |
 | Chat context | top 3 files (8,000 characters each), 300 paths, last 6 messages |
 | Insight context | 40,000 characters, 500 paths |
 | AI call time | 270 s, including the retry (below the 300 s frontend limit) |
